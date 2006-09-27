@@ -1,0 +1,360 @@
+#!/usr/bin/env python
+# -*- coding: iso8859-1 -*-
+
+##############################################################################
+# symbianutil.py - Utilities for working with Symbian OS-related data
+# Copyright 2006 Jussi Ylänen
+#
+# This file is part of Ensymble developer utilities for Symbian OS(TM).
+#
+# Ensymble is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
+#
+# Ensymble is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with Ensymble; if not, write to the Free Software
+# Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
+##############################################################################
+
+import struct
+import zlib
+
+
+##############################################################################
+# Checksum functions for various types of checksums in Symbian OS
+##############################################################################
+
+def crc16ccitt(string, initialvalue = 0x0000, finalxor = 0x0000):
+    '''Calculate a CCITT CRC-16 checksum using a
+    slow and straightforward algorithm.'''
+
+    value = initialvalue
+    for c in string:
+        value ^= (ord(c) << 8)
+        for b in xrange(8):
+            value <<= 1
+            if value & 0x10000:
+                value ^= 0x1021
+            value &= 0xffff
+
+    return value ^ finalxor
+
+def crc32ccitt(data, initialvalue = 0x00000000L, finalxor = 0x00000000L):
+    '''Use zlib to calculate a CCITT CRC-32 checksum. Work around zlib
+    signedness problems.'''
+
+    if initialvalue >= 0x80000000L:
+        initialvalue -= 0x100000000L
+    initialvalue = int(initialvalue)
+
+    value = long(zlib.crc32(data, initialvalue))
+
+    if value < 0:
+        value += 0x100000000L
+
+    return value ^ finalxor
+
+def uidcrc(uid1, uid2, uid3):
+    '''Calculate a Symbian UID checksum.'''
+
+    # Convert UIDs to a string and group even and odd characters
+    # into separate strings (in a Python v2.2 compatible way).
+    uidstr = struct.pack("<LLL", uid1, uid2, uid3)
+    evenchars = "".join([uidstr[n] for n in range(0, 12, 2)])
+    oddchars  = "".join([uidstr[n] for n in range(1, 12, 2)])
+
+    # Calculate 16-bit CCITT CRCs for even and odd characters.
+    evencrc = crc16ccitt(evenchars)
+    oddcrc  = crc16ccitt(oddchars)
+
+    # Resulting 32-bit UID CRC is a combination of the two 16-bit CCITT CRCs.
+    return (long(oddcrc) << 16) | evencrc
+
+def uidstostring(uid1, uid2, uid3):
+    '''Return a string of UIDs and a checksum.'''
+
+    crc = uidcrc(uid1, uid2, uid3)
+    return struct.pack("<LLLL", uid1, uid2, uid3, crc)
+
+def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
+                capabilities = None):
+    '''Return a modified e32image (or just the header) with UID checksum
+    and header checksum (CCITT CRC-32) recalculated. Optionally modify
+    the UID3, secure ID and vendor ID.'''
+
+    if image[16:20] != "EPOC":
+        raise ValueError("not a valid e32image header")
+
+    # Get original UIDs as integers.
+    uid1, uid2, uid3_orig = struct.unpack("<LLL", image[:12])
+
+    # Get modified or original IDs depending on parameters. Convert to strings.
+    if uid3 == None:
+        uid3 = uid3_orig
+    uid3str = struct.pack("<L", uid3)
+
+    if secureid == None:
+        secureidstr = image[128:132]
+    else:
+        secureidstr = struct.pack("<L", secureid)
+
+    if vendorid == None:
+        vendoridstr = image[132:136]
+    else:
+        vendoridstr = struct.pack("<L", vendorid)
+
+    if capabilities == None:
+        capabilitiesstr = image[136:144]
+    else:
+        capabilitiesstr = struct.pack("<Q", capabilities)
+
+    # Re-calculate UID checksum.
+    uidstr = uidstostring(uid1, uid2, uid3)
+
+    # Use initial CRC of 0xc90fdaa2L (KImageCrcInitialiser in f32image.h).
+    initialcrcstr = struct.pack("<L", 0xc90fdaa2L)
+
+    # Construct a new header for CRC-32 calculation.
+    newheader = "%s%s%s%s%s%s%s%s" % (uidstr, image[16:20], initialcrcstr,
+                                      image[24:128], secureidstr, vendoridstr,
+                                      capabilitiesstr, image[144:156])
+
+    crc32 = crc32ccitt(newheader, 0xffffffffL, 0xffffffffL)
+    crc32str = struct.pack("<L", crc32)
+
+    # Construct and return a new image (or header) with the correct checksum.
+    return "%s%s%s%s" % (newheader[0:20], crc32str,
+                         newheader[24:156], image[156:])
+
+
+##############################################################################
+# Symbian OS language mappings
+##############################################################################
+
+langinfo = [
+    ("AF", "Afrikaans",             34),
+    ("SQ", "Albanian",              35),
+    ("AM", "AmericanEnglish",       10),
+    ("AH", "Amharic",               36),
+    ("AR", "Arabic",                37),
+    ("HY", "Armenian",              38),
+    ("AU", "Australian",            20),
+    ("AS", "Austrian",              22),
+    ("BE", "Belarussian",           40),
+    ("BL", "BelgianFlemish",        19),
+    ("BF", "BelgianFrench",         21),
+    ("BN", "Bengali",               41),
+    ("BP", "BrazilianPortuguese",   76),
+    ("BG", "Bulgarian",             42),
+    ("MY", "Burmese",               43),
+    ("CE", "CanadianEnglish",       46),
+    ("CF", "CanadianFrench",        51),
+    ("CA", "Catalan",               44),
+    ("HR", "Croatian",              45),
+    ("CG", "CyprusGreek",           55),
+    ("CT", "CyprusTurkish",         91),
+    ("CS", "Czech",                 25),
+    ("DA", "Danish",                7),
+    ("DU", "Dutch",                 18),
+    ("EN", "English",               1),
+    ("ET", "Estonian",              49),
+    ("FA", "Farsi",                 50),
+    ("FS", "FinlandSwedish",        85),
+    ("FI", "Finnish",               9),
+    ("FR", "French",                2),
+    ("KA", "Georgian",              53),
+    ("GE", "German",                3),
+    ("EL", "Greek",                 54),
+    ("GU", "Gujarati",              56),
+    ("HE", "Hebrew",                57),
+    ("HI", "Hindi",                 58),
+    ("HK", "HongKongChinese",       30),
+    ("HU", "Hungarian",             17),
+    ("IC", "Icelandic",             15),
+    ("IN", "Indonesian",            59),
+    ("IE", "InternationalEnglish",  47),
+    ("IF", "InternationalFrench",   24),
+    ("OS", "InternationalSpanish",  82),
+    ("GA", "Irish",                 60),
+    ("IT", "Italian",               5),
+    ("JA", "Japanese",              32),
+    ("KN", "Kannada",               62),
+    ("KK", "Kazakh",                63),
+    ("KM", "Khmer",                 64),
+    ("KO", "Korean",                65),
+    ("LO", "Laothian",              66),
+    ("LS", "LatinAmericanSpanish",  83),
+    ("LV", "Latvian",               67),
+    ("LT", "Lithuanian",            68),
+    ("MK", "Macedonian",            69),
+    ("MS", "Malay",                 70),
+    ("ML", "Malayalam",             71),
+    ("MR", "Marathi",               72),
+    ("MO", "Moldavian",             73),
+    ("MN", "Mongolian",             74),
+    ("NZ", "NewZealand",            23),
+    ("NO", "Norwegian",             8),
+    ("NN", "NorwegianNynorsk",      75),
+    ("PL", "Polish",                27),
+    ("PO", "Portuguese",            13),
+    ("ZH", "PRCChinese",            31),
+    ("PA", "Punjabi",               77),
+    ("RO", "Romanian",              78),
+    ("RU", "Russian",               16),
+    ("GD", "ScotsGaelic",           52),
+    ("SR", "Serbian",               79),
+    ("SI", "Sinhalese",             80),
+    ("SK", "Slovak",                26),
+    ("SL", "Slovenian",             28),
+    ("SO", "Somali",                81),
+    ("SF", "SouthAfricanEnglish",   48),
+    ("SP", "Spanish",               4),
+    ("SH", "Swahili",               84),
+    ("SW", "Swedish",               6),
+    ("SF", "SwissFrench",           11),
+    ("SG", "SwissGerman",           12),
+    ("SZ", "SwissItalian",          61),
+    ("TL", "Tagalog",               39),
+    ("TC", "TaiwanChinese",         29),
+    ("TA", "Tamil",                 87),
+    ("TE", "Telugu",                88),
+    ("TH", "Thai",                  33),
+    ("BO", "Tibetan",               89),
+    ("TI", "Tigrinya",              90),
+    ("TU", "Turkish",               14),
+    ("TK", "Turkmen",               92),
+    ("UK", "Ukrainian",             93),
+    ("UR", "Urdu",                  94),
+    ("VI", "Vietnamese",            96),
+    ("CY", "Welsh",                 97),
+    ("ZU", "Zulu",                  98)
+]
+
+langidtonum     = dict([(lid,   lnum)  for lid, lname, lnum in langinfo])
+langnametonum   = dict([(lname, lnum)  for lid, lname, lnum in langinfo])
+langnumtoname   = dict([(lnum,  lname) for lid, lname, lnum in langinfo])
+
+
+##############################################################################
+# Symbian OS capabilities
+##############################################################################
+
+capinfo = [
+    ("TCB",             0),
+    ("CommDD",          1),
+    ("PowerMgmt",       2),
+    ("MultimediaDD",    3),
+    ("ReadDeviceData",  4),
+    ("WriteDeviceData", 5),
+    ("DRM",             6),
+    ("TrustedUI",       7),
+    ("ProtServ",        8),
+    ("DiskAdmin",       9),
+    ("NetworkControl",  10),
+    ("AllFiles",        11),
+    ("SwEvent",         12),
+    ("NetworkServices", 13),
+    ("LocalServices",   14),
+    ("ReadUserData",    15),
+    ("WriteUserData",   16),
+    ("Location",        17),
+    ("SurroundingsDD",  18),
+    ("UserEnvironment", 19)
+]
+
+numcaps = 20
+allcapsmask = (1L << numcaps) - 1
+
+capnametonum = dict([(cname.lower(), cnum) for cname, cnum in capinfo])
+
+def capstringtomask(string):
+    '''Parse a capability string in which capability
+    names are separated with + (include capability)
+    and - (exclude capability).'''
+
+    if string == "":
+        # Empty string denotes no capabilities.
+        return 0L
+
+    # "Some people, when confronted with a problem, think "I know,
+    # I'll use regular expressions." Now they have two problems."
+    # -Jamie Zawinski, in comp.lang.emacs
+
+    # Erase an optional initial "+" character.
+    if string[0] == '+':
+        string = string[1:]
+
+    # Split string before each "+" and "-" character.
+    startpos = 0
+    capnames = []
+    for stoppos in xrange(len(string)):
+        if string[stoppos] in ("+", "-"):
+            capnames.append(string[startpos:stoppos])
+            startpos = stoppos
+    capnames.append(string[startpos:])  # The last one
+
+    # Add initial "+" for the first name.
+    capnames[0] = "+%s" % capnames[0]
+
+    # Find a bit mask for each capability name.
+    capmask = 0x00000000L
+    for cname in capnames:
+        # Convert capability name to lowercase for capnametonum[].
+        cnamelower = cname.lower()
+
+        if cnamelower[1:] == "all":
+            mask = allcapsmask
+        elif cnamelower[1:] == "none":
+            mask = 0x00000000L
+        else:
+            try:
+                mask = 1L << (capnametonum[cnamelower[1:]])
+            except KeyError:
+                raise ValueError("invalid capability name '%s'" % cname[1:])
+
+        if cname[0] == '-':
+            # Remove capability.
+            capmask &= ~mask
+        else:
+            # Add capability.
+            capmask |= mask
+
+    return capmask
+
+def capmasktostring(capmask, shortest = False):
+    '''Generate (optionally) the shortest possible capability
+    string using either capability names separated with + (include
+    capability) or - (exclude capability).'''
+
+    if capmask == 0L:
+        # Special string for no capabilities.
+        return "NONE"
+
+    # Construct a list of set and unset capabilities.
+    poscnames = []
+    negcnames = ["ALL"]
+    for cap in capinfo:
+        mask = (1L << cap[1])
+        if capmask & mask:
+            poscnames.append(cap[0])
+            capmask &= ~mask
+        else:
+            negcnames.append(cap[0])
+
+    # Check that all capability bits are handled.
+    if capmask != 0L:
+        raise ValueError("invalid capability bits in mask: 0x%08x" % capmask)
+
+    posstring = "+".join(poscnames)
+    negstring = "-".join(negcnames)
+
+    # Return the shortest string if requested, otherwise the "positive" string.
+    if shortest and len(posstring) > len(negstring):
+        return negstring
+    return posstring

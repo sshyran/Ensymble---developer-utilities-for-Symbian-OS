@@ -1,0 +1,243 @@
+             The Ensymble developer utilities for Symbian OS
+                       Copyright 2006 Jussi Ylänen
+
+                         Last updated 2006-09-26
+
+
+ABOUT
+=====
+
+This is the Ensymble developer utilities for Symbian OS(TM), a 
+collection of Python® modules and command line programs for Symbian OS 
+[1] software development.
+
+This is a preview release with limited functionality. For now, Ensymble 
+only supports installation package (SIS) generation for "Python for S60" 
+scripts. Support for other tasks will follow.
+
+Ensymble aims to provide a cross-platform, open-source way to do Symbian 
+OS software development, supporting Symbian OS versions 9.1 and later. 
+The original tools by Symbian are closed source and only available for 
+the Windows® operating system.
+
+Symbian OS is the operating system used by Nokia [2] in some of its 
+mobile phones [3]. Other manufacturers have also licensed Symbian OS. 
+Python for S60 [4] is a port of the popular Python programming language 
+[5] to a Nokia phone platform called S60® [6]. Before November 2005, S60 
+was called Series 60.
+
+
+VERSION COMPATIBILITY
+=====================
+
+Ensymble targets Symbian OS v9.1 and later. For Nokia phones, this 
+means S60 3rd Edition. 1st and 2nd Edition phones are not directly 
+supported by Ensymble.
+
+The py2sis command of the Ensymble command line tool produces 
+installation packages (SIS) for Python for S60 version 1.3.8 and later. 
+This was the first publicly released version of Python for S60 which 
+was compatible with S60 3rd Edition. See py2sisng [7] for a 
+cross-platform version of py2sis, compatible with S60 1st and 2nd 
+Edition.
+
+Ensymble is written in Python. Python v2.2 or newer is required, as 
+older versions lack necessary language features. Ensymble has been 
+tested on the following systems:
+
+ * Debian GNU/Linux Sid (i386) with Python v2.3.5 and v2.4.4c0
+ * Red Hat Linux release 9 (i386) with Python v2.2.2
+ * Red Hat Enterprise Linux AS release 3 (i386) with Python v2.2.3
+ * Red Hat Enterprise Linux AS release 4 (i386) with Python v2.3.4
+ * Apple OS X Tiger (G4) with Python v2.3.5
+ * Microsoft Windows XP, SP2 with Python v2.5
+
+
+INSTALLATION
+============
+
+Care has been taken to ensure that minimum amount of extra software is 
+needed to run Ensymble. A working installation of Python is required 
+(see VERSION COMPATIBILITY above). In addition, the OpenSSL command 
+line tool [8] is required for installation package (SIS) generation. 
+Any recent version will do, and can usually be found pre-installed. For 
+Windows, the Stunnel OpenSSL binaries [9] are recommended, but any 
+other binaries will do as well.
+
+For convenience, a regular Ensymble installation packs everything 
+together in one file using the nifty squeeze utility [10] by Fredrik 
+Lundh. Pre-squeezed files for various Python versions may be downloaded 
+from the Ensymble home page. These files are ready to use, no unpacking 
+is necessary.
+
+For Unix-like systems, there is a simple installation script which 
+squeezes all the required files together and copies the resulting 
+package to the user's bin-directory. The directory must exist already:
+
+----
+$ ./install.sh ~/bin
+----
+
+If the installation goes through without errors, the Ensymble command 
+line tool "ensymble.py" is now ready for use, provided that the user's 
+bin-directory can be found in command search path.
+
+
+USAGE
+=====
+
+The Ensymble command line tool provides access to most Ensymble 
+functionality. Its usage is in basic form ("$" is the Unix command 
+prompt):
+
+----
+$ ensymble.py command options...
+----
+
+, where "command" is the command to be executed and "options" are the 
+command specific options. Running ensymble.py without arguments will 
+list all the available commands. Options for the command can be found 
+using the "--help" (or "-h") option:
+
+----
+$ ensymble.py version -h
+Ensymble developer utilities for Symbian OS(TM)
+
+usage: ensymble.py version
+
+Print Ensymble version.
+----
+
+Only one useful command is available in this preview release: The 
+"py2sis" command is used to pack a Python for S60 script and its 
+auxiliary files (if any), to a Symbian installation package (SIS). In 
+the simplest form it is used like this:
+
+----
+$ ensymble.py py2sis --uid=0xf2345678 myprog.py
+----
+
+This generates a SIS file called "myprog_v1_0_0.sis" in current working 
+directory. The SIS file can then be uploaded to a S60 3rd Edition phone.
+
+Note: use a real UID instead of the dummy one given above. UIDs can be 
+ordered from Symbian Signed [11]. If you have already ordered UIDs for 
+1st or 2nd Edition phones, to use these UIDs in 3rd Edition phones the 
+first hex digit (a "1") needs to be changed to an "f".
+
+The "py2sis" command has a lot of options. This document does not yet 
+cover them. For details, see the py2sisng [7] README file. Many of the 
+options work identically to py2sisng, but there are some changes:
+
+ * 1st and 2nd Edition phones are not supported.
+ * UIDs begin with an "f" (see above).
+ * Icon is an SVG-T file instead of an MBM file (a default icon is provided).
+ * A certificate is always needed (a default built-in one is provided, though).
+ * Capabilities need to be set according to program needs (the "--caps" opt.).
+ * Version string has an optional third number, the build.
+
+Note about security: The private key of the certificate is saved 
+unencrypted to a temporary file and could be recovered by others. Keep 
+this in mind when working with SIS certificates.
+
+
+PROJECT HISTORY
+===============
+
+2006-09-26
+Second public preview release: 2006-09-26 v0.11
+Made the default certificate a bit more anonymous.
+Added Windows (NT/2000/XP) support.
+
+2006-09-25
+Tested Ensymble on Python v2.2.
+Added COPYING file to the source package.
+Minor edits to README and ensymble.html
+
+2006-09-24
+First public preview release: 2006-09-24 v0.10
+
+
+LICENSE
+=======
+
+Ensymble developer utilities for Symbian OS(TM)
+Copyright 2006 Jussi Ylänen
+Released under the GNU General Public Licence (see file COPYING)
+
+
+CONTACT
+=======
+
+Official web page for Ensymble can be found at
+
+        http://www.nbl.fi/jussi.ylanen/ensymble.html
+
+
+Please send comments, suggestions, corrections and enhancements to:
+
+        jussi.ylanen@iki.fi
+
+
+ACKNOWLEDGEMENTS
+================
+
+Symbian and all Symbian-based marks and logos are trade marks of Symbian 
+Limited.
+
+"Python" and the Python logo are trademarks or registered trademarks of 
+the Python Software Foundation.
+
+Nokia, S60 and logo, Series 60 are trademarks or registered trademarks 
+of Nokia Corporation.
+
+Windows is a registered trademark of Microsoft Corporation in the United 
+States and other countries.
+
+
+REFERENCES
+==========
+
+[1]
+Symbian OS
+http://www.symbian.com
+
+[2]
+Nokia
+http://www.nokia.com
+
+[3]
+A list of Nokia S60 phone editions:
+http://www.forum.nokia.com/devices/matrix_s60_1.html
+
+[4]
+Python for S60
+http://www.forum.nokia.com/python
+
+[5]
+The Python programming language
+http://www.python.org
+
+[6]
+S60 Platform
+http://www.s60.com
+
+[7]
+Python-to-SIS, the next generation by Jussi Ylänen
+http://www.nbl.fi/jussi.ylanen/py2sisng.html
+
+[8]
+OpenSSL
+http://www.openssl.org
+
+[9]
+Stunnel OpenSSL binaries
+http://www.stunnel.org/download/binaries.html
+
+[10]
+squeeze utility by Fredrik Lundh
+http://effbot.org/zone/squeeze.htm
+
+[11]
+Symbian Signed
+http://www.symbiansigned.com
