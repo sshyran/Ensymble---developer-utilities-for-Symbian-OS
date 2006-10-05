@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                        Copyright 2006 Jussi Ylänen
 
-                         Last updated 2006-10-05
+                         Last updated 2006-10-06
 
 
 ABOUT
@@ -150,6 +150,10 @@ implement security improvements.
 
 PROJECT HISTORY
 ===============
+
+2006-10-06
+Fourth public preview release: 2006-10-06 v0.13
+OpenSSL invocation uses absolute paths now. Windows XP Pro should work now.
 
 2006-10-05
 Third public preview release: 2006-10-05 v0.12
