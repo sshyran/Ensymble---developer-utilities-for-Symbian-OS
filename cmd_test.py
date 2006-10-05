@@ -22,9 +22,6 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ##############################################################################
 
-import sisfile
-import sisfield
-
 
 ##############################################################################
 # Help texts
@@ -42,6 +39,9 @@ Try to test every feature of the sisfile module. Creates a SIS file "test.sis".
 ##############################################################################
 
 def run(pgmname, argv):
+    import sisfile
+    import sisfield
+
     #iconmime = "image/png"
     #icondata = '''
     #iVBORw0KGgoAAAANSUhEUgAAABAAAAARBAMAAAAmgTH3AAAABGdBTUEAALGPC/xhBQAAACdQTFRF
