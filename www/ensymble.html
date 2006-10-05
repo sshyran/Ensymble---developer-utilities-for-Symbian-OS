@@ -57,10 +57,38 @@ cross-platform version of py2sis, compatible with S60 1st and 2nd Edition.)
 
 <H2>Download</H2>
 
-Ensymble pre-squeezed versions are ready to use. Just copy the file to
-a suitable place (on command search path) and start using it!
+Ensymble pre-<A HREF="http://effbot.org/zone/squeeze.htm">squeezed</A> versions
+are ready to use. Just copy the file to a suitable place (on command search
+path) and start using it!
 
 <H3>Latest</H3>
+
+Third public preview release: v0.12 2006-10-05
+<UL>
+<LI>Source:
+<A HREF="ensymble-0.12.tar.gz">ensymble-0.12.tar.gz</A> (71 kB)</LI>
+<LI>Pre-squeezed version for Python v2.2:
+<A HREF="ensymble_python2.2-0.12.py">ensymble_python2.2-0.12.py</A> (66 kB)</LI>
+<LI>Pre-squeezed version for Python v2.3:
+<A HREF="ensymble_python2.3-0.12.py">ensymble_python2.3-0.12.py</A> (59 kB)</LI>
+<LI>Pre-squeezed version for Python v2.4:
+<A HREF="ensymble_python2.4-0.12.py">ensymble_python2.4-0.12.py</A> (58 kB)</LI>
+<LI>Pre-squeezed version for Python v2.5:
+<A HREF="ensymble_python2.5-0.12.py">ensymble_python2.5-0.12.py</A> (56 kB)</LI>
+<LI>Documentation (very incomplete):
+<A HREF="README-0.12.txt">README-0.12.txt</A> (8 kB)</LI>
+</UL>
+<P>
+Changes:
+<UL>
+<LI>Implemented automatic test UID generation for the py2sis command.</LI>
+<LI>Added warning message for UIDs in the protected range.</LI>
+<LI>Changed OpenSSL path detection to be carried out only on demand.</LI>
+<LI>Added debug messages for troubleshooting OpenSSL-related problems.</LI>
+<LI>Miscellaneous clean-ups</LI>
+</UL>
+
+<H3>Older versions</H3>
 
 Second public preview release: v0.11 2006-09-26
 <UL>
@@ -84,8 +112,6 @@ Changes:
 <LI>Added Windows (NT/2000/XP) support.</LI>
 </UL>
 
-<H3>Older versions</H3>
-
 First public preview release: v0.10 2006-09-24
 <UL>
 <LI>Source:
@@ -94,6 +120,11 @@ First public preview release: v0.10 2006-09-24
 
 <H2>Project history</H2>
 <UL>
+<LI><STRONG>2006-10-05</STRONG>
+<BR>Third public preview release
+<BR>Added additional debug output to find out why invoking OpenSSL does
+not always work on Windows.
+</LI>
 <LI><STRONG>2006-09-26</STRONG>
 <BR>Second public preview release
 <BR>Tested Ensymble with Windows XP and Python v2.5, pre-squeezed for v2.5.
