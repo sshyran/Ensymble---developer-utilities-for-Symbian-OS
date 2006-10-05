@@ -85,6 +85,24 @@ def signstring(privkey, passphrase, string):
         sigfilename     = os.path.join(tempdir, "signature.dat")
         stringfilename  = os.path.join(tempdir, "string.dat")
 
+        # Add enclosing quotes to any filename containing whitespace. Quotes
+        # are only relevant when creating command lines to execute.
+        keyfilename_cmd = keyfilename
+        if " " in keyfilename:
+            keyfilename_cmd = '"%s"' % keyfilename_cmd
+
+        key2filename_cmd = key2filename
+        if " " in key2filename:
+            key2filename_cmd = '"%s"' % key2filename_cmd
+
+        sigfilename_cmd = sigfilename
+        if " " in sigfilename:
+            sigfilename_cmd = '"%s"' % sigfilename_cmd
+
+        stringfilename_cmd = stringfilename
+        if " " in stringfilename:
+            stringfilename_cmd = '"%s"' % stringfilename_cmd
+
         # Write PEM format private key to file.
         keyfile = file(keyfilename, "wb")
         keyfile.write(privkey)
@@ -92,8 +110,9 @@ def signstring(privkey, passphrase, string):
 
         # Decrypt the private key. Older versions of OpenSSL do not
         # accept the "-passin" parameter for the "dgst" command.
-        runopenssl(tempdir, "%s -in privkey.pem -out privkey2.pem "
-                   "-passin stdin" % keytype.convcmd, passphrase + "\n")
+        runopenssl("%s -in %s -out %s -passin stdin" %
+                   (keytype.convcmd, keyfilename_cmd, key2filename_cmd),
+                   passphrase + "\n")
 
         if not os.path.isfile(key2filename):
             # OpenSSL did not create output file. Probably a wrong pass phrase.
@@ -106,9 +125,10 @@ def signstring(privkey, passphrase, string):
         stringfile.close()
 
         # Sign binary string using the decrypted private key.
-        command = ("dgst %s -binary -sign privkey2.pem "
-                   "-out signature.dat string.dat") % keytype.signcmd
-        runopenssl(tempdir, command)
+        command = ("dgst %s -binary -sign %s "
+                   "-out %s %s") % (keytype.signcmd, key2filename_cmd,
+                                    sigfilename_cmd, stringfilename_cmd)
+        runopenssl(command)
 
         # Check that the signature was successfully generated.
         if not os.path.isfile(sigfilename):
@@ -141,7 +161,7 @@ def certtobinary(pemcert):
 
     dercert     X.509 certificate in DER (binary) format'''
 
-    resp = runopenssl(None, "x509 -inform pem -outform der", pemcert)
+    resp = runopenssl("x509 -inform pem -outform der", pemcert)
 
     if resp[1] != "" or resp[0] == "":
         # Conversion did not succeed.
@@ -185,21 +205,17 @@ def mkdtemp(template):
         raise OSError(errno.EEXIST, os.strerror(errno.EEXIST),
                       os.path.join(systemp, template))
 
-def runopenssl(tempdir, command, datain = ""):
-    '''Run an OpenSSL command in a previously created temporary directory.'''
+def runopenssl(command, datain = ""):
+    '''Run the OpenSSL command line tool with the given parameters and data.'''
 
-    # Find path to the OpenSSL command.
-    findopenssl()
+    global opensslcommand
+
+    if opensslcommand == None:
+        # Find path to the OpenSSL command.
+        findopenssl()
 
     # Construct a command line for os.popen3().
-    if tempdir != None:
-        # Run OpenSSL command in a temporary directory.
-        # The "&&" command separator works with Bourne Shell
-        # (Unix-like systems) and cmd.exe (Windows).
-        cmdline = 'cd "%s" && "%s" %s' % (tempdir, opensslcommand, command)
-    else:
-        # No files to use or generate, no temporary directory needed.
-        cmdline = '"%s" %s' % (opensslcommand, command)
+    cmdline = '%s %s' % (opensslcommand, command)
 
     if openssldebug:
         # Print command line.
@@ -221,13 +237,9 @@ def runopenssl(tempdir, command, datain = ""):
     return (dataout, errout)
 
 def findopenssl():
-    '''Find OpenSSL command line tool.'''
+    '''Find the OpenSSL command line tool.'''
 
     global opensslcommand
-
-    if opensslcommand != None:
-        # OpenSSL already found, do nothing.
-        return
 
     # Get PATH and split it to a list of paths.
     paths = os.environ["PATH"].split(os.pathsep)
@@ -249,6 +261,10 @@ def findopenssl():
             break
     else:
         raise IOError("no valid OpenSSL command line tool found in PATH")
+
+    if " " in cmd:
+        # Add quotes around command in case of embedded whitespace on path.
+        cmd = '"%s"' % cmd
 
     opensslcommand = cmd
 
