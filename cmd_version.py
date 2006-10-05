@@ -39,4 +39,4 @@ Print Ensymble version.
 ##############################################################################
 
 def run(pgmname, argv):
-    print "Ensymble v0.11 2006-09-26"
+    print "Ensymble v0.12 2006-10-05"
