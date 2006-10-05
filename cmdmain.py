@@ -46,7 +46,7 @@ def main():
 
             print (
 '''
-Ensymble developer utilities for Symbian OS(TM)
+Ensymble developer utilities for Symbian OS
 
 usage: %(pgmname)s command [command options]...
 
@@ -65,7 +65,7 @@ Use '%(pgmname)s command --help' to get command specific help.
             # Print command specific help.
             longhelp = cmddict[command].longhelp
             print (
-'''Ensymble developer utilities for Symbian OS(TM)
+'''Ensymble developer utilities for Symbian OS
 
 usage: %(pgmname)s %(longhelp)s''' % locals())
         else:
