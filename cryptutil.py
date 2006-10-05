@@ -29,11 +29,26 @@ import random
 
 
 opensslcommand = None   # Path to OpenSSL command line tool
+openssldebug   = False  # True for extra debug output
 
 
 ##############################################################################
 # Public module-level functions
 ##############################################################################
+
+def setdebug(active):
+    '''Activate or deactivate debug output.
+
+    setdebug(...) -> None
+
+    active      Debug output enabled / disabled, a boolean value
+
+    Debug output consists of OpenSSL binary command line and
+    any output produced to the standard error stream by OpenSSL.
+    '''
+
+    global openssldebug
+    openssldebug =  not not active  # Convert to boolean.
 
 def signstring(privkey, passphrase, string):
     '''Sign a binary string using a given private key and its pass phrase.
@@ -173,6 +188,9 @@ def mkdtemp(template):
 def runopenssl(tempdir, command, datain = ""):
     '''Run an OpenSSL command in a previously created temporary directory.'''
 
+    # Find path to the OpenSSL command.
+    findopenssl()
+
     # Construct a command line for os.popen3().
     if tempdir != None:
         # Run OpenSSL command in a temporary directory.
@@ -183,6 +201,10 @@ def runopenssl(tempdir, command, datain = ""):
         # No files to use or generate, no temporary directory needed.
         cmdline = '"%s" %s' % (opensslcommand, command)
 
+    if openssldebug:
+        # Print command line.
+        print "DEBUG: os.popen3(%s)" % repr(cmdline)
+
     # Run command. Use os.popen3() to capture stdout and stderr.
     pipein, pipeout, pipeerr = os.popen3(cmdline)
     pipein.write(datain)
@@ -191,6 +213,10 @@ def runopenssl(tempdir, command, datain = ""):
     pipeout.close()
     errout = pipeerr.read()
     pipeerr.close()
+
+    if openssldebug:
+        # Print standard error output.
+        print "DEBUG: pipeerr.read() = %s" % repr(errout)
 
     return (dataout, errout)
 
@@ -222,7 +248,7 @@ def findopenssl():
             # Command found, stop searching.
             break
     else:
-        raise RuntimeError("no valid OpenSSL command line tool found in PATH")
+        raise IOError("no valid OpenSSL command line tool found in PATH")
 
     opensslcommand = cmd
 
@@ -235,11 +261,3 @@ class Bunch:
     '''Bunch recipe from Python Cookbook, by Alex Martelli'''
     def __init__(self, **kwds):
         self.__dict__.update(kwds)
-
-
-##############################################################################
-# Module initialization
-##############################################################################
-
-# Initialize module on import.
-findopenssl()
