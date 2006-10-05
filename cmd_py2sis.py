@@ -123,7 +123,7 @@ def run(pgmname, argv):
     long_opts = [
         "uid=", "appname=", "version=", "lang=", "icon=",
         "shortcaption=", "caption=", "cert=", "privkey=", "passphrase=",
-        "caps=", "encoding=", "verbose", "help"
+        "caps=", "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
 
@@ -205,10 +205,17 @@ def run(pgmname, argv):
     else:
         raise ValueError("wrong number of arguments")
 
+    # Determine application name (install dir.), use basename by default.
+    appname = opts.get("--appname", opts.get("-n", basename))
+    appname = appname.decode(terminalenc)
+
     # Get UID3.
     uid3 = opts.get("--uid", opts.get("-u", uid3))
     if uid3 == None:
-        raise ValueError("no UID given")
+        # No UID given, auto-generate a test UID from application name.
+        uid3 = (symbianutil.crc32ccitt(appname) & 0x0fffffffL) | 0xe0000000L
+        print ("%s: warning: no UID given, using auto-generated "
+               "test UID 0x%08x" % (pgmname, uid3))
     elif uid3.lower().startswith("0x"):
         # Prefer hex UIDs with leading "0x".
         uid3 = long(uid3, 16)
@@ -226,10 +233,6 @@ def run(pgmname, argv):
                        (pgmname, uid3))
         except ValueError:
             raise ValueError("invalid UID string '%s'" % uid3)
-
-    # Determine application name (install dir.), use basename by default.
-    appname = opts.get("--appname", opts.get("-n", basename))
-    appname = appname.decode(terminalenc)
 
     # Determine application language(s), use "EN" by default.
     lang = opts.get("--lang", opts.get("-l", "EN")).split(",")
@@ -311,6 +314,12 @@ def run(pgmname, argv):
         print ("%s: warning: no certificate given, using "
                "insecure built-in one" % pgmname)
 
+        # Warn if the UID is in the protected range.
+        # Resulting SIS file will probably not install.
+        if uid3 < 0x80000000L:
+            print ("%s: warning: UID is in the protected range "
+                   "(0x00000000 - 0x7ffffff)" % pgmname)
+
     # Get pass phrase. Pass phrase remains in terminal encoding.
     passphrase = opts.get("--passphrase", opts.get("-p", None))
     if passphrase == None and privkey != None:
@@ -336,6 +345,15 @@ def run(pgmname, argv):
     verbose = False
     if "--verbose" in opts.keys() or "-v" in opts.keys():
         verbose = True
+
+    # Determine if debug output is requested.
+    debug = False
+    if "--debug" in opts.keys():
+        debug = True
+
+        # Enable debug output for OpenSSL-related functions.
+        import cryptutil
+        cryptutil.setdebug(True)
 
     # Ingredients for successful SIS generation:
     #
