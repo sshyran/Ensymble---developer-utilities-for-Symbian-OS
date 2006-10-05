@@ -1,0 +1,4 @@
+py2sis command: Make it possible to add text files to display during install
+(freeware route to market).
+
+Move imports inside run() of each command to speed up program startup.
