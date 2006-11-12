@@ -7,7 +7,7 @@
 #
 # This program is based on a whitepaper by Symbian's Security team:
 # Symbian OS v9.X SIS File Format Specification, Version 1.1, June 2006
-# http://www.symbian.com/developer/techlib/papers/SymbianOSv91/softwareinstallsis.pdf
+# http://developer.symbian.com/main/downloads/papers/SymbianOSv91/softwareinstallsis.pdf
 #
 # This program is part of Ensymble developer utilities for Symbian OS(TM).
 #
