@@ -55,6 +55,12 @@ supported by Ensymble. A list of editions for Nokia phones is available from
 (See <A HREF="http://www.nbl.fi/jussi.ylanen/py2sisng.html">py2sisng</A> for a
 cross-platform version of py2sis, compatible with S60 1st and 2nd Edition.)
 
+<P>
+<B>NOTE:</B> Ensymble-generated SIS packages for Python for S60 scripts have 
+to be installed into the main phone memory. Installing to memory card will not
+work with Python for S60 v1.3.8 to v1.3.13. This is a bug in Python for S60
+and will hopefully be corrected in an upcoming release.
+
 <H2>Download</H2>
 
 Ensymble pre-<A HREF="http://effbot.org/zone/squeeze.htm">squeezed</A> versions
@@ -62,6 +68,28 @@ are ready to use. Just copy the file to a suitable place (on command search
 path) and start using it!
 
 <H3>Latest</H3>
+
+v0.14 2006-11-12
+<UL>
+<LI>Source:
+<A HREF="ensymble-0.14.tar.gz">ensymble-0.14.tar.gz</A> (71 kB)</LI>
+<LI>Pre-squeezed version for Python v2.2:
+<A HREF="ensymble_python2.2-0.14.py">ensymble_python2.2-0.14.py</A> (66 kB)</LI>
+<LI>Pre-squeezed version for Python v2.3:
+<A HREF="ensymble_python2.3-0.14.py">ensymble_python2.3-0.14.py</A> (60 kB)</LI>
+<LI>Pre-squeezed version for Python v2.4:
+<A HREF="ensymble_python2.4-0.14.py">ensymble_python2.4-0.14.py</A> (58 kB)</LI>
+<LI>Pre-squeezed version for Python v2.5:
+<A HREF="ensymble_python2.5-0.14.py">ensymble_python2.5-0.14.py</A> (57 kB)</LI>
+<LI>Documentation (very incomplete):
+<A HREF="README-0.14.txt">README-0.14.txt</A> (8 kB)</LI>
+</UL>
+<P>
+Changes:
+<LI>Modified generated SIS format a bit, to be compatible with Windows signsis.exe.</LI>
+<LI>Test UIDs use lower case appname now, due to Symbian OS being case insensitive.</LI>
+<LI>Added support for signature chains. Signature chains are used by Symbian Signed (DevCerts and other certificates).</LI>
+</UL>
 
 Fourth public preview release: v0.13 2006-10-06
 <UL>
@@ -81,7 +109,7 @@ Fourth public preview release: v0.13 2006-10-06
 <P>
 Changes:
 <UL>
-<LI>OpenSSL invocation uses absolute paths now. Windows XP Pro should work now.</LI>
+<LI>OpenSSL invocation uses absolute paths now. This corrects problems with Windows XP Pro.</LI>
 </UL>
 
 <H3>Older versions</H3>
@@ -141,6 +169,11 @@ First public preview release: v0.10 2006-09-24
 
 <H2>Project history</H2>
 <UL>
+<LI><STRONG>2006-11-12</STRONG>
+<BR>Tested and corrected for compatibility with Symbian Signed certificates
+<BR>Added a note about incompatibility when installing SIS files to memory card.
+<BR>Other small corrections
+</LI>
 <LI><STRONG>2006-10-05</STRONG>
 <BR>Third public preview release
 <BR>Added additional debug output to find out why invoking OpenSSL does
@@ -166,7 +199,7 @@ not always work on Windows.
 <A HREF="http://sourceforge.net/projects/pys60">Python for S60</A> on
 SourceForge</LI>
 <LI>
-<A HREF="http://www.symbian.com/developer/techlib/papers/SymbianOSv91/softwareinstallsis.pdf">Symbian OS v9.X SIS File Format Specification</A> from
+<A HREF="http://developer.symbian.com/main/downloads/papers/SymbianOSv91/softwareinstallsis.pdf">Symbian OS v9.X SIS File Format Specification</A> from
 Symbian</LI>
 <LI>
 <A HREF="http://www.nbl.fi/jussi.ylanen/py2sisng.html">Python-to-SIS, the next generation</A> for S60
