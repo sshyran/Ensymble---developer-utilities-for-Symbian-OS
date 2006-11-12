@@ -213,7 +213,8 @@ def run(pgmname, argv):
     uid3 = opts.get("--uid", opts.get("-u", uid3))
     if uid3 == None:
         # No UID given, auto-generate a test UID from application name.
-        uid3 = (symbianutil.crc32ccitt(appname) & 0x0fffffffL) | 0xe0000000L
+        uid3 = (symbianutil.crc32ccitt(appname.lower()) &
+                0x0fffffffL) | 0xe0000000L
         print ("%s: warning: no UID given, using auto-generated "
                "test UID 0x%08x" % (pgmname, uid3))
     elif uid3.lower().startswith("0x"):
@@ -238,7 +239,7 @@ def run(pgmname, argv):
     lang = opts.get("--lang", opts.get("-l", "EN")).split(",")
     numlang = len(lang)
 
-    # Get icon MBM file name.
+    # Get icon file name.
     icon = opts.get("--icon", opts.get("-i", None))
     if icon != None:
         icon = icon.decode(terminalenc).encode(filesystemenc)
