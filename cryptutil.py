@@ -153,21 +153,39 @@ def signstring(privkey, passphrase, string):
 
 
 def certtobinary(pemcert):
-    '''Convert an X.509 certificate from PEM (base-64) format to DER (binary).
+    '''Convert X.509 certificates from PEM (base-64) format to DER (binary).
 
     certtobinary(...) -> dercert
 
-    pemcert     X.509 certificate in PEM (base-64) format
+    pemcert     One or more X.509 certificates in PEM (base-64) format, a string
 
-    dercert     X.509 certificate in DER (binary) format'''
+    dercert     X.509 certificate(s), an ASN.1 encoded binary string'''
 
-    resp = runopenssl("x509 -inform pem -outform der", pemcert)
+    # Split certificate chain in separate certificates.
+    offset = 0
+    offsets = []
+    while True:
+        offset = pemcert.find("-----BEGIN CERTIFICATE-----", offset, -1)
+        if offset >= 0:
+            offsets.append(offset)
+            offset += len("-----BEGIN CERTIFICATE-----")
+        else:
+            break
+    offsets.append(len(pemcert))
 
-    if resp[1] != "" or resp[0] == "":
-        # Conversion did not succeed.
-        raise ValueError("certificate conversion error (invalid certificate?)")
+    # Convert each certificate in DER format.
+    resps = []
+    for n in xrange(len(offsets) - 1):
+        resp = runopenssl("x509 -inform pem -outform der",
+                          pemcert[offsets[n]:offsets[n + 1]])
 
-    return resp[0]
+        if resp[1] != "" or resp[0] == "":
+            # Conversion did not succeed.
+            raise ValueError("certificate conversion error (invalid certificate?)")
+
+        resps.append(resp[0])
+
+    return "".join(resps)
 
 
 ##############################################################################
