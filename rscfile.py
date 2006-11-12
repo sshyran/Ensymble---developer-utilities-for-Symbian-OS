@@ -34,12 +34,17 @@ import symbianutil
 def makeuidfromoffset(offset):
     '''Convert a Symbian OS resource file offset to a UID.
 
-    From rcomp v7.01 source:
-
-    space: 0, A: 1, ..., Z: 26
+    ---- From rcomp v7.01 source ----
+    space: 0, A: 1, B: 2, ..., Z: 26
 
     ABCD corresponds to the number 4321 which becomes
-    ((4*27 + 3) * 27 + 2) * 27 + 1.'''
+    ((4*27 + 3) * 27 + 2) * 27 + 1.
+    ----                         ----
+
+    The description above contains an error. The actual situation
+    is reversed: ABCD corresponds to the number 1234 which results in
+    ((1*27 + 2) * 27 + 3) * 27 + 4.
+    '''
 
     if len(offset) not in range(1, 5):
         raise ValueError("offset must be four characters or less")
