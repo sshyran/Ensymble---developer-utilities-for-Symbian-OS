@@ -155,9 +155,11 @@ def makefiledesc(contents, compressedlen, index, target = None,
     mimetypefield = sisfield.SISString(String = mimetype)
 
     # Create a SISCapabilities SISField for executable capabilities.
-    if capabilities != None:
-        # SISCapabilities expects a binary string,
-        # need to convert the capability mask.
+    if capabilities != None and capabilities != 0L:
+        # SISCapabilities expects a binary string, need to convert the
+        # capability mask. If capability mask is 0, no capability field
+        # is generated. Otherwise signsis.exe cannot sign the resulting
+        # SIS file.
         capstring = struct.pack("<Q", capabilities)
         capfield = sisfield.SISCapabilities(Capabilities = capstring)
     else:
