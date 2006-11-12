@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                        Copyright 2006 Jussi Ylänen
 
-                         Last updated 2006-10-06
+                         Last updated 2006-11-12
 
 
 ABOUT
@@ -34,11 +34,12 @@ Ensymble targets Symbian OS v9.1 and later. For Nokia phones, this means
 S60 3rd Edition. 1st and 2nd Edition phones are not directly supported
 by Ensymble.
 
-The py2sis command of the Ensymble command line tool produces
-installation packages (SIS) for Python for S60 version 1.3.8 and later.
-This was the first publicly released version of Python for S60 which was
-compatible with S60 3rd Edition. See py2sisng [7] for a cross-platform
-version of py2sis, compatible with S60 1st and 2nd Edition.
+The py2sis command of the Ensymble command line tool produces 
+installation packages (SIS) for Python for S60 version 1.3.8 and later. 
+Version 1.3.8 of Python for S60 was the first publicly released version 
+which was compatible with S60 3rd Edition. See py2sisng [7] for a 
+cross-platform version of py2sis, compatible with S60 1st and 2nd 
+Edition.
 
 Ensymble is written in Python. Python v2.2 or newer is required, as
 older versions lack necessary language features. Ensymble has been
@@ -50,6 +51,11 @@ tested on the following systems:
  * Red Hat Enterprise Linux AS release 4 (i386) with Python v2.3.4
  * Apple OS X Tiger (G4) with Python v2.3.5
  * Microsoft Windows XP, SP2 with Python v2.5
+
+NOTE: Ensymble-generated SIS packages for Python for S60 scripts have to 
+be installed into the main phone memory. Installing to memory card will 
+not work with Python for S60 v1.3.8 - v1.3.13. This is a bug in Python 
+for S60 and will hopefully be corrected in an upcoming release.
 
 
 INSTALLATION
@@ -150,6 +156,11 @@ implement security improvements.
 
 PROJECT HISTORY
 ===============
+
+2006-11-12
+Modified generated SIS format a bit, to be compatible with native signsis.exe.
+Test UIDs use lower case appname now, due to Symbian OS being case insensitive.
+Added support for signature chains. Symbian Signed uses those.
 
 2006-10-06
 Fourth public preview release: 2006-10-06 v0.13
