@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                        Copyright 2006 Jussi Ylänen
 
-                         Last updated 2006-11-12
+                         Last updated 2006-11-18
 
 
 ABOUT
@@ -157,8 +157,14 @@ implement security improvements.
 PROJECT HISTORY
 ===============
 
+2006-11-18
+Released Ensymble version 2006-11-18 v0.15
+Rewrote certificate to binary conversion. Fixes problems on Windows.
+Removed line feed after pass phrase for OpenSSL. It will not work on Windows.
+
 2006-11-12
-Modified generated SIS format a bit, to be compatible with native signsis.exe.
+Released Ensymble version 2006-11-12 v0.14
+Modified the generated SIS a bit, to be compatible with native signsis.exe.
 Test UIDs use lower case appname now, due to Symbian OS being case insensitive.
 Added support for signature chains. Symbian Signed uses those.
 
