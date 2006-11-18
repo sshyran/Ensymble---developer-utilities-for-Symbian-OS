@@ -65,8 +65,9 @@ def signstring(privkey, passphrase, string):
     NOTE: On platforms with poor file system security, unencrypted version
     of the private key may be grabbed from the temporary directory!'''
 
-    if passphrase == None:
-        passphrase = ""
+    if passphrase == None or len(passphrase) == 0:
+        # OpenSSL does not like empty stdin while reading a passphrase from it.
+        passphrase = "\n"
 
     # Create a temporary directory for OpenSSL to work in.
     tempdir = mkdtemp("ensymble-XXXXXX")
@@ -112,7 +113,7 @@ def signstring(privkey, passphrase, string):
         # accept the "-passin" parameter for the "dgst" command.
         runopenssl("%s -in %s -out %s -passin stdin" %
                    (keytype.convcmd, keyfilename_cmd, key2filename_cmd),
-                   passphrase + "\n")
+                   passphrase)
 
         if not os.path.isfile(key2filename):
             # OpenSSL did not create output file. Probably a wrong pass phrase.
@@ -161,31 +162,43 @@ def certtobinary(pemcert):
 
     dercert     X.509 certificate(s), an ASN.1 encoded binary string'''
 
-    # Split certificate chain in separate certificates.
-    offset = 0
-    offsets = []
+    # Find base-64 encoded data between header and footer.
+    header = "-----BEGIN CERTIFICATE-----"
+    footer = "-----END CERTIFICATE-----"
+    endoffset = 0
+    certs = []
     while True:
-        offset = pemcert.find("-----BEGIN CERTIFICATE-----", offset, -1)
-        if offset >= 0:
-            offsets.append(offset)
-            offset += len("-----BEGIN CERTIFICATE-----")
-        else:
+        # First find a header.
+        startoffset = pemcert.find(header, endoffset)
+        if startoffset < 0:
+            # No header found, stop search.
             break
-    offsets.append(len(pemcert))
 
-    # Convert each certificate in DER format.
-    resps = []
-    for n in xrange(len(offsets) - 1):
-        resp = runopenssl("x509 -inform pem -outform der",
-                          pemcert[offsets[n]:offsets[n + 1]])
+        startoffset += len(header)
 
-        if resp[1] != "" or resp[0] == "":
-            # Conversion did not succeed.
-            raise ValueError("certificate conversion error (invalid certificate?)")
+        # Next find a footer.
+        endoffset = pemcert.find(footer, startoffset)
+        if endoffset < 0:
+            # No footer found.
+            raise ValueError("missing PEM certificate footer")
 
-        resps.append(resp[0])
+        # Extract the base-64 encoded certificate and decode it.
+        try:
+            cert = pemcert[startoffset:endoffset].decode("base-64")
+        except:
+            # Base-64 decoding error.
+            raise ValueError("invalid PEM format certificate")
 
-    return "".join(resps)
+        certs.append(cert)
+
+        endoffset += len(footer)
+
+    if len(certs) == 0:
+        raise ValueError("not a PEM format certificate")
+
+    # DER certificates are simply raw binary versions
+    # of the base-64 encoded PEM certificates.
+    return "".join(certs)
 
 
 ##############################################################################
