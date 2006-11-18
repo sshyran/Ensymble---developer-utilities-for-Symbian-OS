@@ -69,6 +69,30 @@ path) and start using it!
 
 <H3>Latest</H3>
 
+v0.15 2006-11-18
+<UL>
+<LI>Source:
+<A HREF="ensymble-0.15.tar.gz">ensymble-0.15.tar.gz</A> (72 kB)</LI>
+<LI>Pre-squeezed version for Python v2.2:
+<A HREF="ensymble_python2.2-0.15.py">ensymble_python2.2-0.15.py</A> (66 kB)</LI>
+<LI>Pre-squeezed version for Python v2.3:
+<A HREF="ensymble_python2.3-0.15.py">ensymble_python2.3-0.15.py</A> (60 kB)</LI>
+<LI>Pre-squeezed version for Python v2.4:
+<A HREF="ensymble_python2.4-0.15.py">ensymble_python2.4-0.15.py</A> (58 kB)</LI>
+<LI>Pre-squeezed version for Python v2.5:
+<A HREF="ensymble_python2.5-0.15.py">ensymble_python2.5-0.15.py</A> (57 kB)</LI>
+<LI>Documentation (very incomplete):
+<A HREF="README-0.15.txt">README-0.15.txt</A> (9 kB)</LI>
+</UL>
+<P>
+Changes:
+<UL>
+<LI>Rewrote certificate to binary conversion. Fixes certificate problems on Windows. Some generated SIS files were not installable.</LI>
+<LI>Removed line feed after pass phrase for OpenSSL. It caused "wrong pass phrase" errors on Windows.</LI>
+</UL>
+
+<H3>Older versions</H3>
+
 v0.14 2006-11-12
 <UL>
 <LI>Source:
@@ -87,8 +111,8 @@ v0.14 2006-11-12
 <P>
 Changes:
 <UL>
-<LI>Modified generated SIS format a bit, to be compatible with Windows signsis.exe.</LI>
-<LI>Test UIDs use lower case appname now, due to Symbian OS being case insensitive.</LI>
+<LI>Modified the generated SIS format a bit, to be compatible with Windows signsis.exe.</LI>
+<LI>Test UIDs use lower case appname now, due to Symbian OS being case insensitive. What this means is that programs "test.py" and "TeSt.pY" now get the same (automatically generated) test UID.</LI>
 <LI>Added support for signature chains. Signature chains are used by Symbian Signed (DevCerts and other certificates).</LI>
 </UL>
 
@@ -112,8 +136,6 @@ Changes:
 <UL>
 <LI>OpenSSL invocation uses absolute paths now. This corrects problems with Windows XP Pro.</LI>
 </UL>
-
-<H3>Older versions</H3>
 
 Third public preview release: v0.12 2006-10-05
 <UL>
@@ -170,6 +192,9 @@ First public preview release: v0.10 2006-09-24
 
 <H2>Project history</H2>
 <UL>
+<LI><STRONG>2006-11-18</STRONG>
+<BR>Fixed several Windows compatibility problems with certificates and pass phrases.
+</LI>
 <LI><STRONG>2006-11-12</STRONG>
 <BR>Tested and corrected for compatibility with Symbian Signed certificates
 <BR>Added a note about incompatibility when installing SIS files to memory card.
