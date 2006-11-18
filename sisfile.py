@@ -77,7 +77,7 @@ def signstring(privkey, passphrase, string):
     signstring(...) -> (signature, algorithm oid)
 
     privkey         private key (RSA or DSA), a binary string in PEM format
-    passphrase      pass-phrase (non-Unicode) for the private key or None
+    passphrase      pass phrase (non-Unicode) for the private key or None
     string          binary string from which the signature is to be calculated
 
     signature       signature, a binary string
