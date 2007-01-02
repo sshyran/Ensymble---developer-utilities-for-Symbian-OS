@@ -3,7 +3,7 @@
 
 ##############################################################################
 # ensymble.py - Ensymble command line tool
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -26,13 +26,15 @@ import sys
 import os
 
 # Import command modules.
-cmddict     = {"py2sis": None, "version": None}
+cmddict     = {"altere32": None, "py2sis":  None,
+               "signsis":  None, "version": None}
 for cmdname in cmddict.keys():
     cmddict[cmdname] = __import__("cmd_%s" % cmdname, globals(), locals(), [])
 
 
 def main():
-    pgmname     = os.path.basename(sys.argv[0])
+    pgmname = os.path.basename(sys.argv[0])
+    debug   = False
 
     # Parse command line parameters.
     try:
@@ -65,19 +67,29 @@ Use '%(pgmname)s command --help' to get command specific help.
             # Print command specific help.
             longhelp = cmddict[command].longhelp
             print (
-'''Ensymble developer utilities for Symbian OS
+'''
+Ensymble developer utilities for Symbian OS
 
 usage: %(pgmname)s %(longhelp)s''' % locals())
         else:
+            if "--debug" in sys.argv[2:]:
+                # Enable raw exception reporting.
+                debug = True
+
             # Run command.
             cmddict[command].run(pgmname, sys.argv[2:])
     except Exception, e:
-        return "%s: %s" % (pgmname, str(e))
+        if debug:
+            # Debug output requested, print exception traceback as-is.
+            raise
+        else:
+            # Normal output, use terse exception reporting.
+            return "%s: %s" % (pgmname, str(e))
 
     return 0
 
 # Call main if run as stand-alone executable.
-#if __name__ == '__main__' or True:
+#if __name__ == '__main__':
 #    sys.exit(main())
 
 # Call main regardless, to support packing with the squeeze utility.
