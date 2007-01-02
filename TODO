@@ -1,7 +1,10 @@
-py2sis command: Make it possible to add text files to display during install
-(freeware route to market).
+Python-module-to-SIS command. Python modules are under \resource.
+
+Dev-cert-request command. Needs IMEI and capabilities as extra data.
 
 Move imports inside run() of each command to speed up program startup.
+
+Include py2sis EXE stub sources.
 
 sisfield.py: Better memory efficiency
 
