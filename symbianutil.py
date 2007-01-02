@@ -3,7 +3,7 @@
 
 ##############################################################################
 # symbianutil.py - Utilities for working with Symbian OS-related data
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -61,7 +61,7 @@ def crc32ccitt(data, initialvalue = 0x00000000L, finalxor = 0x00000000L):
     return value ^ finalxor
 
 def uidcrc(uid1, uid2, uid3):
-    '''Calculate a Symbian UID checksum.'''
+    '''Calculate a Symbian OS UID checksum.'''
 
     # Convert UIDs to a string and group even and odd characters
     # into separate strings (in a Python v2.2 compatible way).
@@ -88,11 +88,14 @@ def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
     and header checksum (CCITT CRC-32) recalculated. Optionally modify
     the UID3, secure ID and vendor ID.'''
 
-    if image[16:20] != "EPOC":
-        raise ValueError("not a valid e32image header")
+    if len(image) < 156:
+        raise ValueError("not enough data for a complete e32image header")
 
     # Get original UIDs as integers.
     uid1, uid2, uid3_orig = struct.unpack("<LLL", image[:12])
+
+    if uid1 not in (0x1000007AL, 0x10000079L) or image[16:20] != "EPOC":
+        raise ValueError("not a valid e32image header")
 
     # Get modified or original IDs depending on parameters. Convert to strings.
     if uid3 == None:
@@ -213,11 +216,11 @@ langinfo = [
     ("SK", "Slovak",                26),
     ("SL", "Slovenian",             28),
     ("SO", "Somali",                81),
-    ("SF", "SouthAfricanEnglish",   48),
+    ("SF", "SouthAfricanEnglish",   48),    # "SF" is also "SwissFrench"
     ("SP", "Spanish",               4),
     ("SH", "Swahili",               84),
     ("SW", "Swedish",               6),
-    ("SF", "SwissFrench",           11),
+    ("SF", "SwissFrench",           11),    # "SF" is also "SouthAfricanEnglish"
     ("SG", "SwissGerman",           12),
     ("SZ", "SwissItalian",          61),
     ("TL", "Tagalog",               39),
@@ -358,3 +361,23 @@ def capmasktostring(capmask, shortest = False):
     if shortest and len(posstring) > len(negstring):
         return negstring
     return posstring
+
+def capmasktorawdata(capmask):
+    '''Convert capability bit mask to raw four- or eight-character string.'''
+
+    if capmask < (1L << 32):
+        return struct.pack("<L", int(capmask))
+    elif capmask < (1L << 64):
+        return struct.pack("<Q", capmask)
+    else:
+        raise ValueError("capability bit mask too long")
+
+def rawdatatocapmask(rawdata):
+    '''Convert raw four- or eight-character string to capability bit mask.'''
+
+    if len(rawdata) == 4:
+        return struct.unpack("<L", rawdata)[0]
+    elif len(rawdata) == 8:
+        return struct.unpack("<Q", rawdata)[0]
+    else:
+        raise ValueError("string length not a multiple of 32 bits")
