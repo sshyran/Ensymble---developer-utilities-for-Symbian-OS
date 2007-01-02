@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
-                       Copyright 2006 Jussi Ylänen
+                    Copyright 2006, 2007 Jussi Ylänen
 
-                         Last updated 2006-11-18
+                         Last updated 2007-01-01
 
 
 ABOUT
@@ -11,20 +11,22 @@ This is the Ensymble developer utilities for Symbian OS(TM), a
 collection of Python® modules and command line programs for Symbian OS
 [1] software development.
 
-This is a preview release with limited functionality. For now, Ensymble
-only supports installation package (SIS) generation for "Python for S60"
-scripts. Support for other tasks will follow.
+Current focus of Ensymble development is to provide useful tools for
+making "Python for S60" [2] programs. Supported functions include
+generation of SIS (installation) packages, (re-)signing existing SIS
+packages and modifying extension DLL headers. Support for other Symbian
+OS software development tasks will follow.
 
-Ensymble aims to provide a cross-platform, open-source way to do Symbian
-OS software development, supporting Symbian OS versions 9.1 and later.
-The original tools by Symbian are closed source and only available for
-the Windows® operating system.
+A long term goal of Ensymble is to provide a cross-platform, open-source
+way to do Symbian OS software development, supporting Symbian OS
+versions 9.1 and later. The original tools by Symbian are closed source
+and only available for the Windows® operating system.
 
-Symbian OS is the operating system used by Nokia [2] in some of its
-mobile phones [3]. Other manufacturers have also licensed Symbian OS.
-Python for S60 [4] is a port of the popular Python programming language
-[5] to a Nokia phone platform called S60® [6]. Before November 2005, S60
-was called Series 60.
+Symbian OS is the operating system used by Nokia [3] in some of its
+mobile phones [4]. Other manufacturers have also licensed Symbian OS.
+Python for S60 is a port of the popular Python programming language [5]
+to a Nokia phone platform called S60® [6]. Before November 2005, S60 was
+called Series 60.
 
 
 VERSION COMPATIBILITY
@@ -34,27 +36,27 @@ Ensymble targets Symbian OS v9.1 and later. For Nokia phones, this means
 S60 3rd Edition. 1st and 2nd Edition phones are not directly supported
 by Ensymble.
 
-The py2sis command of the Ensymble command line tool produces 
-installation packages (SIS) for Python for S60 version 1.3.8 and later. 
-Version 1.3.8 of Python for S60 was the first publicly released version 
-which was compatible with S60 3rd Edition. See py2sisng [7] for a 
-cross-platform version of py2sis, compatible with S60 1st and 2nd 
+The py2sis command of the Ensymble command line tool produces
+installation packages (SIS) for Python for S60 version 1.3.8 and later.
+Version 1.3.8 of Python for S60 was the first publicly released version
+which was compatible with S60 3rd Edition. See py2sisng [7] for a
+cross-platform version of py2sis, compatible with S60 1st and 2nd
 Edition.
 
 Ensymble is written in Python. Python v2.2 or newer is required, as
 older versions lack necessary language features. Ensymble has been
 tested on the following systems:
 
- * Debian GNU/Linux Sid (i386) with Python v2.3.5 and v2.4.4c0
+ * Debian GNU/Linux Sid (i386) with Python v2.3.5 and v2.4.4
  * Red Hat Linux release 9 (i386) with Python v2.2.2
  * Red Hat Enterprise Linux AS release 3 (i386) with Python v2.2.3
  * Red Hat Enterprise Linux AS release 4 (i386) with Python v2.3.4
  * Apple OS X Tiger (G4) with Python v2.3.5
  * Microsoft Windows XP, SP2 with Python v2.5
 
-NOTE: Ensymble-generated SIS packages for Python for S60 scripts have to 
-be installed into the main phone memory. Installing to memory card will 
-not work with Python for S60 v1.3.8 - v1.3.13. This is a bug in Python 
+Note: Ensymble-generated SIS packages for Python for S60 scripts have to
+be installed into the main phone memory. Installing to memory card will
+not work with Python for S60 v1.3.8 - v1.3.15. This is a bug in Python
 for S60 and will hopefully be corrected in an upcoming release.
 
 
@@ -64,10 +66,10 @@ INSTALLATION
 Care has been taken to ensure that minimum amount of extra software is
 needed to run Ensymble. A working installation of Python is required
 (see VERSION COMPATIBILITY above). In addition, the OpenSSL command line
-tool [8] is required for installation package (SIS) generation. Any
-recent version will do, and can usually be found pre-installed. For
-Windows, the Stunnel OpenSSL binaries [9] are recommended, but any other
-binaries will do as well.
+tool [8] is required for installation package (SIS) generation and
+(re-)signing. Any recent version will do, and can usually be found
+pre-installed. For Windows, the Stunnel OpenSSL binaries [9] are
+recommended, but any other binaries will do as well.
 
 For convenience, a regular Ensymble installation packs everything
 together in one file using the nifty squeeze utility [10] by Fredrik
@@ -79,9 +81,7 @@ For Unix-like systems, there is a simple installation script which
 squeezes all the required files together and copies the resulting
 package to the user's bin-directory. The directory must exist already:
 
-----
-$ ./install.sh ~/bin
-----
+    $ ./install.sh ~/bin
 
 If the installation goes through without errors, the Ensymble command
 line tool "ensymble.py" is now ready for use, provided that the user's
@@ -91,36 +91,379 @@ bin-directory can be found in command search path.
 USAGE
 =====
 
-The Ensymble command line tool provides access to most Ensymble
-functionality. Its usage is in basic form ("$" is the Unix command
-prompt):
+DESCRIPTION
 
-----
-$ ensymble.py command options...
-----
+The Ensymble command line tool provides access to most Ensymble
+functionality:
+
+    $ ensymble.py command options...
 
 , where "command" is the command to be executed and "options" are the
 command specific options. Running ensymble.py without arguments will
-list all the available commands. Options for the command can be found
-using the "--help" (or "-h") option:
+list all the available commands.
 
-----
-$ ensymble.py version -h
-Ensymble developer utilities for Symbian OS(TM)
+The following commands are currently supported by Ensymble:
 
-usage: ensymble.py version
+    altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+    py2sis     Create a SIS package for a "Python for S60" application
+    signsis    Sign a SIS package
+    version    Print Ensymble version
 
-Print Ensymble version.
-----
+Each command is documented in detail below.
 
-Only one useful command is available in this preview release: The
-"py2sis" command is used to pack a Python for S60 script and its
-auxiliary files (if any), to a Symbian installation package (SIS). In
-the simplest form it is used like this:
+Note about security: When using SIS certificates, the private key of the
+certificate is saved unencrypted to a temporary file and could be
+recovered by others. This is due to compatibility with old versions of
+OpenSSL. In the future, Ensymble may require a more recent version of
+OpenSSL.
 
-----
-$ ensymble.py py2sis myprog.py
-----
+
+COMMON OPTIONS
+
+    --encoding=terminal,filesystem
+    -e terminal,filesystem
+
+Local character encodings for terminal and filesystem. For example
+"--encoding=utf8,latin1", if the terminal is using a UTF-8 character set
+and the filesystem is still using the older latin1 (ISO-8859-1)
+character set. See [11] for a list of Python standard encodings.
+
+The encodings will be autodetected most of the time, but on some special
+environments this may not be possible, hence this option.
+
+    --verbose
+    -v
+
+Print extra statistics, such as file names, option summary.
+
+    --help
+    -h
+
+On-line help for a command can be found using this option.
+
+
+EXAMPLES
+
+    $ ensymble.py
+
+    Ensymble developer utilities for Symbian OS
+
+    usage: ensymble.py command [command options]...
+
+    Commands:
+        altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+        py2sis     Create a SIS package for a "Python for S60" application
+        signsis    Sign a SIS package
+        version    Print Ensymble version
+
+    Use 'ensymble.py command --help' to get command specific help.
+
+When no commands and options are given, Ensymble prints a short help.
+
+    $ ensymble.py version -h
+
+    Ensymble developer utilities for Symbian OS
+
+    usage: ensymble.py version
+
+    Print Ensymble version.
+
+Each command has an on-line help. A short description of what the
+command does and a list of options are printed.
+
+
+The "altere32" command
+----------------------
+
+SYNOPSIS
+
+    $ ensymble.py altere32
+        [--uid=0x01234567] [--secureid=0x01234567] [--vendorid=0x01234567]
+        [--caps=Cap1+Cap2+...] [--encoding=terminal,filesystem] [--verbose]
+        <infile> <outfile>
+
+or
+
+    $ ensymble.py altere32
+        [--uid=0x01234567] [--secureid=0x01234567] [--vendorid=0x01234567]
+        [--caps=Cap1+Cap2+...] [--encoding=terminal,filesystem] [--verbose]
+        --inplace <infile>...
+
+
+DESCRIPTION
+
+The "altere32" command alters the IDs and capabilities of e32image files
+(Symbian EXEs and DLLs). Extension module authors can use this command
+to quickly generate variations of extension modules without recompiling.
+
+
+PARAMETERS
+
+    infile
+
+Path of the original e32image file. If option "--inplace" (see below) is
+set, there may be more than one file name present.
+
+    outfile
+
+Path of the modified e32image file. Only used when not using option
+"--inplace", see below. If a directory name is given, input file name is
+used as the output file name.
+
+    --inplace
+    -i
+
+Allow more than one input file name, modify input files in-place.
+
+Note: Use this option with caution, as no backups of the original files
+will be made!
+
+    --uid=0x01234567
+    -u 0x01234567
+
+Symbian UID for the e32image. This is normally same as the secure ID,
+see below. If this option is not given, the UID is not changed.
+
+    --secureid=0x01234567
+    -s 0x01234567
+
+Secure ID for the e32image. This is normally same as the UID, see above.
+If this option is not given, the secure ID is not changed.
+
+    --vendorid=0x01234567
+    -r 0x01234567
+
+Vendor ID for the e32image. In most cases the vendor ID is 0. If this
+option is not given, the vendor ID is not changed.
+
+    --caps=Cap1+Cap2+...
+    -b Cap1+Cap2+...
+
+Capability names, separated by "+". If no capability option is given,
+capabilities are not changed.
+
+
+EXAMPLES
+
+Note: The command lines below may be wrapped over multiple lines due to
+layout constraints. In reality, each of them should be contained in one
+physical command line, with no spaces around the "+" characters.
+
+    $ ensymble.py altere32
+        --caps=LocalServices+Location+NetworkServices+PowerMgmt+ProtServ+
+        ReadUserData+SurroundingsDD+SWEvent+UserEnvironment+WriteUserData+
+        ReadDeviceData+TrustedUI+WriteDeviceData
+        myextension_orig.pyd myextension.pyd
+
+This will modify "myextension_orig.pyd" (a "Python for S60" extension
+DLL) with the capabilities listed, and generate file "myextension.pyd"
+with the new capabilities.
+
+    $ ensymble.py altere32 --caps=<whatever> --inplace *.dll
+
+This modifies every DLL file in the current directory using the given
+capabilities. Original files will be modified, so use the "--inplace"
+option with caution!
+
+Note: When modifying the UID, the secure ID should be modified
+accordingly. Modifying UIDs of application EXEs is generally not
+possible, because applications usually include the UID in program code
+as well.
+
+
+The "py2sis" command
+--------------------
+
+SYNOPSIS
+
+    $ ensymble.py py2sis
+        [--uid=0x01234567] [--appname=AppName] [--version=1.0.0]
+        [--lang=EN,...] [--icon=icon.svg]
+        [--shortcaption="App. Name",...] [--caption="Application Name",...]
+        [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
+        [--passphrase=12345] [--caps=Cap1+Cap2+...]
+        [--encoding=terminal,filesystem] [--verbose]
+        <src> [sisfile]
+
+
+DESCRIPTION
+
+The "py2sis" command is used to pack a Python for S60 application script
+and its auxiliary files (if any) into a Symbian installation package (SIS).
+
+
+PARAMETERS
+
+    src
+
+The source script or directory name. When a directory name is given, the
+directory structure is preserved under an application specific private
+directory ("\private\<uid>\") on the phone. A file called "default.py"
+is required to exist on the root of the directory given. This will be
+the main file that starts the application.
+
+When a regular file name is given, it will be located under the
+application specific private directory, with the name "default.py".
+
+    sisfile
+
+Path of the SIS file to create. If a directory name is given, output
+file name is derived from input file name and application version (see
+option "--version" below). This is also the case when no SIS file name
+is given.
+
+    --appname=AppName
+    -n AppName
+
+Name of the application. If no application name is given, it will be
+derived from the input file name.
+
+This name is used as the base for all generated file names (EXE, icon,
+resources) on the phone. It will also be used as the default caption if
+none are given, and a temporary UID (see option "--uid" below) will be
+generated from application name if not given explicitly.
+
+    --uid=0x01234567
+    -u 0x01234567
+
+Symbian UID for the application. If the UID option is not given, the
+main Python file ("default.py", see parameter "src" above) will be
+scanned for a string of form "SYMBIAN_UID=0x12345678" (without quotes).
+If no UID can be found, a temporary UID is generated from the
+application name (see option "--appname" above).
+
+Note: Use a real UID for all applications to be distributed. The
+auto-generated test UID is only meant for development and testing, not
+for real applications. UIDs can be ordered from Symbian Signed [12]. If
+you have already ordered UIDs for 1st or 2nd Edition phones, to use
+these UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
+changed to an "f".
+
+Also note: Changing the application name (or source file / directory
+name in case no application name is explicitly given), the temporary UID
+changes and the SIS package will be considered a new application on the
+phone.
+
+    --version=1.0.0
+    -r 1.0.0
+
+Application version: X.Y.Z or X,Y,Z (major, minor, build). There may be
+a "v" or "V" in front of the major number. Minor and build numbers are
+optional.
+
+If the version option is not given, the main Python file ("default.py",
+see parameter "src" above) will be scanned for a string of form
+"SIS_VERSION=X.Y.Z" (without quotes). If no version can be found, it
+defaults to 1.0.0.
+
+    --lang=EN,...
+    -l EN,...
+
+Comma separated list of two-character language codes. These are the
+languages that the SIS file claims to support, English by default.
+Application must then somehow determine which language was selected
+during install. Symbian installation tools reference [13] lists the
+available language codes.
+
+    --icon=icon.svg
+    -i icon.svg
+
+Icon file in SVG-Tiny format. If no icon is given, the Python logo is
+used as the icon. The Python logo is a trademark of the Python Software
+Foundation.
+
+Ensymble does not support the old style MBM bitmap icons.
+
+    --shortcaption="App. Name",...
+    -s "App. Name",...
+
+    --caption="Application Name",...
+    -c "Application Name",...
+
+Comma separated list of short and long captions in all selected
+languages, i.e. there must be as many comma separated captions as there
+are languages listed with the "--lang" option. If no captions are given,
+application name is used (see option "--appname" above). If only the
+short captions are given, long captions will use those instead.
+
+Captions are visible names used in various places on the phone display.
+Short caption is displayed under the application icon when using the
+grid layout. Long caption is used on top of the screen when the
+application is launched and beside the icon in list layout. Long caption
+is also used as the package name, which is displayed during application
+installation.
+
+    --textfile=mytext_%C.txt
+    -t mytext_%C.txt
+
+Text file (or pattern, see below) to display during install. If none is
+given, no extra text will be displayed during install.
+
+Files to display are in UTF-8 encoding, without Byte-Order Marker (BOM).
+The file name may contain formatting characters that are substituted for
+each selected language (see option "--lang" above). If no formatting
+characters are present, the same text will be used for all languages.
+
+    %%           - literal %
+    %n           - language number (01 - 99)
+    %c           - two-character language code in lowercase letters
+    %C           - two-character language code in capital letters
+    %l           - language name in English, using only lowercase letters
+    %l           - language name in English, using mixed case letters
+
+For example, if there are files named "mytext_EN.txt", "mytext_GE.txt"
+and "mytext_SP.txt", a pattern of "mytext_%C.txt" will be able to use
+them.
+
+    --cert=mycert.cer
+    -a mycert.cer
+
+Certificate to use for signing in PEM (text) format.
+
+SIS files for Symbian OS v9 and later are required to be digitally
+signed. Unsigned packages will not install on the phone. A
+self-generated ("self-signed" in crypto parlance) certificate will do,
+but only a restricted subset of features ("capabilities", see option
+"--caps" below) are available for self-signed applications.
+
+If no certificate and its private key are given, Ensymble uses a default
+self-signed certificate. Software authors are encouraged to create their
+own unique certificates for SIS packages that are to be distributed.
+
+    --privkey=mykey.key
+    -k mykey.key
+
+Private key of the certificate in PEM (text) format. If option "--cert"
+(above) is given, this option is required as well.
+
+    --passphrase=12345
+    -p 12345
+
+Pass phrase of the private key.
+
+Note: Using command line options to give the pass phrase is insecure.
+Any user of the computer will be able to see command lines of started
+programs and thus will see the pass phrase in plain view. Instead,
+standard input should be used (see examples below).
+
+If no pass phrase is given on the command line or standard input, it
+will be asked interactively.
+
+    --caps=Cap1+Cap2+...
+    -b Cap1+Cap2+...
+
+Capability names, separated by "+". If no capability option is given,
+the application will not have any special capabilities. Symbian Signed
+[12] has an FAQ which explains all the available capabilities.
+
+
+EXAMPLES
+
+Note: The command lines below may be wrapped over multiple lines due to
+layout constraints. In reality, each of them should be contained in one
+physical command line.
+
+    $ ensymble.py py2sis myprog.py
 
 This generates a SIS file called "myprog_v1_0_0.sis" in current working
 directory. This SIS file is ready to be uploaded to a S60 3rd Edition
@@ -129,33 +472,160 @@ for the package and a default self-signed certificate is used to
 digitally sign the SIS file. A default icon (the Python logo) is used
 for application icon.
 
-Note: use a real UID for all applications to be distributed. The
-auto-generated test UID is only meant for development and testing, not
-for real applications. UIDs can be ordered from Symbian Signed [11]. If
-you have already ordered UIDs for 1st or 2nd Edition phones, to use
-these UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
-changed to an "f".
+    $ echo "12345" | ensymble.py py2sis
+        --cert mycert.cer --privkey mykey.key
+        myprog.py
 
-The "py2sis" command has a lot of options. This document does not yet
-cover them. For details, see the py2sisng [7] README file. Many of the
-options work identically to py2sisng, but there are some changes:
+Pass phrase can be given in Ensymble standard input, so that it will not
+be visible to all users of the computer (see option "--passphrase"
+above).
 
- * 1st and 2nd Edition phones are not supported.
- * Old UIDs need to be modified to begin with a hex digit "f" (see above).
- * A test UID in range 0xe0000000 - 0xefffffff is generated if none is given.
- * Icon is an SVG-T file instead of an MBM file (a default icon is provided).
- * SIS files are digitally signed (a default built-in certificate is provided).
- * Capabilities need to be set according to program needs (the "--caps" opt.).
- * Version string has an optional third number, the build.
 
-Note about security: When using SIS certificates, the private key of the
-certificate is saved unencrypted to a temporary file and could be
-recovered by others. Future versions of Ensymble will hopefully
-implement security improvements.
+The "signsis" command
+---------------------
+
+SYNOPSIS
+
+    $ ensymble.py signsis
+        [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
+        [--execaps=Cap1+Cap2+...] [--dllcaps=Cap1+Cap2+...]
+        [--encoding=terminal,filesystem] [--verbose]
+        <infile> [outfile]
+
+
+DESCRIPTION
+
+The "signsis" command (re-)signs a SIS package with the certificate
+provided, stripping out any existing certificates, if any. Capabilities
+of all EXE and DLL files contained in the SIS package can optionally be
+modified.
+
+Extension module authors may want to distribute a version of their SIS
+packages with only limited capabilities. Users can then adjust the
+capabilities according to their own needs and sign the SIS package with
+their own certificates.
+
+Note: SIS packages may embed other SIS packages. The "signsis" command
+will only alter the main SIS, leaving all embedded SIS packages intact.
+
+
+PARAMETERS
+
+    infile
+
+Path of the original SIS file.
+
+    outfile
+
+Path of the modified SIS file. If a directory name is given, input file
+name is used as the output file name.
+
+Note: If no output file name is given, original SIS file is overwritten!
+
+    --cert=mycert.cer
+
+Certificate to use for signing in PEM (text) format. If no certificate
+and its private key are given, Ensymble uses a default self-signed
+certificate (see option "--cert" for command "py2sis" above).
+
+    --privkey=mykey.key
+
+Private key of the certificate in PEM (text) format. If option "--cert"
+(above) is given, this option is required as well.
+
+    --passphrase=12345
+
+Pass phrase of the private key.
+
+Note: Using command line options to give the pass phrase is insecure.
+Any user of the computer will be able to see command lines of started
+programs and thus will see the pass phrase in plain view. Instead,
+standard input should be used (see examples below).
+
+If no pass phrase is given on the command line or standard input, it
+will be asked interactively.
+
+    --execaps=Cap1+Cap2+...
+
+Capability names, separated by "+". EXEs inside the SIS file will be
+modified according to these capabilities. If no capability option is
+given, no EXEs will be modified. Symbian Signed [12] has an FAQ which
+explains all the available capabilities.
+
+    --dllcaps=Cap1+Cap2+...
+
+Capability names, separated by "+". DLLs inside the SIS file will be
+modified according to these capabilities. If no capability option is
+given, no DLLs will be modified.
+
+
+EXAMPLES
+
+Note: The command lines below may be wrapped over multiple lines due to
+layout constraints. In reality, each of them should be contained in one
+physical command line, with no spaces around the "+" characters.
+
+    $ ensymble.py signsis
+        --dllcaps=LocalServices+Location+NetworkServices+PowerMgmt+ProtServ+
+        ReadUserData+SurroundingsDD+SWEvent+UserEnvironment+WriteUserData+
+        ReadDeviceData+TrustedUI+WriteDeviceData
+        --cert=mycert.cer --key=mykey.key --passphrase=12345
+        coolextension_nocert.sis coolextension_mycert.sis
+
+Extension module "coolextension_nocert.sis" will be modified with the
+capabilities listed. A new SIS file "coolextension_mycert.sis" will be
+created and signed with "mycert.cer" using private key "mykey.key".
+
+    $ echo "12345" | ensymble.py signsis
+        --dllcaps=<whatever> --cert=mycert.cer --key=mykey.key
+        coolextension_nocert.sis coolextension_mycert.sis
+
+Pass phrase can be given in Ensymble standard input, so that it will not
+be visible to all users of the computer (see option "--passphrase"
+above).
+
+
+The "version" command
+---------------------
+
+SYNOPSIS
+
+    $ ensymble.py version
+
+
+DESCRIPTION
+
+The "version" command prints Ensymble version.
+
+
+PARAMETERS
+
+No parameters
+
+
+EXAMPLES
+
+    $ ensymble.py version
+    Ensymble v0.20 2007-01-01
+
+The version string is printed.
 
 
 PROJECT HISTORY
 ===============
+
+2007-01-01
+Released Ensymble version 2007-01-01 v0.20
+Revamped documentation. Now every command and option is explained.
+Added signsis command for (re-)signing SIS files.
+Added altere32 command for altering pre-compiled Symbian EXEs and DLLs.
+Implemented text file option for py2sis command ("Freeware Route to Market").
+Made py2sis language option more robust against mistyped language codes.
+Made it possible modify signatures of an existing SISController object.
+Generated capability fields are smaller now (4 bytes instead of 8 bytes).
+Moved default certificate to its own module: defaultcert.py.
+Made exception dumps more verbose when the --debug option is present.
+Miscellaneous clean-ups.
 
 2006-11-18
 Released Ensymble version 2006-11-18 v0.15
@@ -198,7 +668,7 @@ LICENSE
 =======
 
 Ensymble developer utilities for Symbian OS(TM)
-Copyright 2006 Jussi Ylänen
+Copyright 2006, 2007 Jussi Ylänen
 Released under the GNU General Public Licence (see file COPYING)
 
 
@@ -239,16 +709,16 @@ Symbian OS
 http://www.symbian.com
 
 [2]
+Python for S60
+http://www.forum.nokia.com/python
+
+[3]
 Nokia
 http://www.nokia.com
 
-[3]
+[4]
 A list of Nokia S60 phone editions:
 http://www.forum.nokia.com/devices/matrix_s60_1.html
-
-[4]
-Python for S60
-http://www.forum.nokia.com/python
 
 [5]
 The Python programming language
@@ -275,5 +745,13 @@ squeeze utility by Fredrik Lundh
 http://effbot.org/zone/squeeze.htm
 
 [11]
+Python standard encodings
+http://docs.python.org/lib/standard-encodings.html
+
+[12]
 Symbian Signed
 http://www.symbiansigned.com
+
+[13]
+Symbian installation tools reference
+http://www.symbian.com/developer/techlib/v70sdocs/doc_source/ToolsAndUtilities/Installing-ref/PackageFileFormatReference.guide.html
