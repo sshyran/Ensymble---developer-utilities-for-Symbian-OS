@@ -3,7 +3,7 @@
 
 ##############################################################################
 # sisfile.py - Symbian OS v9.x SIS file utilities
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -160,10 +160,10 @@ def makefiledesc(contents, compressedlen, index, target = None,
         # capability mask. If capability mask is 0, no capability field
         # is generated. Otherwise signsis.exe cannot sign the resulting
         # SIS file.
-        capstring = struct.pack("<Q", capabilities)
+        capstring = symbianutil.capmasktorawdata(capabilities)
         capfield = sisfield.SISCapabilities(Capabilities = capstring)
     else:
-        # Only EXE-files have a concept of capability.
+        # Only EXE- and DLL-files have a concept of capability.
         capfield = None
 
     # Calculate file hash using SHA-1. Create a SISHash SISField out of it.
@@ -171,7 +171,7 @@ def makefiledesc(contents, compressedlen, index, target = None,
     if contents != None:
         sha1hash = sha.new(contents).digest()
     else:
-        # No data, containing SISBlob is mandatory but empty.
+        # No data, the containing SISBlob is mandatory but empty.
         sha1hash = ""
     hashblob = sisfield.SISBlob(Data = sha1hash)
     hashfield = sisfield.SISHash(HashAlgorithm = sisfield.ESISHashAlgSHA1,
@@ -555,21 +555,19 @@ class SimpleSISWriter(object):
         # Generate a data index field. No embedded SIS files, index is 0.
         didxfield = sisfield.SISDataIndex(DataIndex = 0)
 
+        # Generate a SISController SISField without any signatures.
+        ctrlfield = sisfield.SISController(Info = infofield,
+                                           Options = optfield,
+                                           Languages = langfield,
+                                           Prerequisites = prereqfield,
+                                           Properties = propfield,
+                                           Logo = self.logo,
+                                           InstallBlock = ibfield)
+
         # Calculate metadata signature for each certificate.
         certfieldlist = []
         for cert in self.certificates:
-            # Generate a temporary SISController SISField
-            # including any previously calculated signatures.
-            ctrlfield = sisfield.SISController(Info = infofield,
-                                               Options = optfield,
-                                               Languages = langfield,
-                                               Prerequisites = prereqfield,
-                                               Properties = propfield,
-                                               Logo = self.logo,
-                                               InstallBlock = ibfield,
-                                               Signatures = certfieldlist)
-
-            # Calculate a signature of the temporary SISController.
+            # Calculate a signature of the SISController so far.
             string = ctrlfield.tostring()
             string = sisfield.stripheaderandpadding(string)
             signature, algoid = signstring(cert[0], cert[2], string)
@@ -590,17 +588,12 @@ class SimpleSISWriter(object):
             certfieldlist.append(sisfield.SISSignatureCertificateChain(
                 Signatures = sa, CertificateChain = sf2))
 
-        # Generate a final SISController with all required
-        # data and wrap it in SISCompressed SISField.
-        ctrlfield = sisfield.SISController(Info = infofield,
-                                           Options = optfield,
-                                           Languages = langfield,
-                                           Prerequisites = prereqfield,
-                                           Properties = propfield,
-                                           Logo = self.logo,
-                                           InstallBlock = ibfield,
-                                           Signatures = certfieldlist,
-                                           DataIndex = didxfield)
+            # Add certificate to SISController SISField.
+            ctrlfield.setsignatures(certfieldlist)
+
+        # Finally add a data index field to SISController SISField.
+        # and wrap it in SISCompressed SISField.
+        ctrlfield.DataIndex = didxfield
         ctrlcompfield = sisfield.SISCompressed(Data = ctrlfield,
             CompressionAlgorithm = sisfield.ECompressDeflate)
 
