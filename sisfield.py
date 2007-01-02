@@ -3,7 +3,7 @@
 
 ##############################################################################
 # sisfield.py - Symbian OS v9.x SIS file utilities, SISField support classes
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -27,15 +27,20 @@ import zlib
 
 import symbianutil
 
-# Debug flag (0: None, 1: Basic, 2: Verbose)
-DEBUG = 0
-
 
 # TODO: 1. Make all tostring() methods cache the result.
-# TODO: 2. Prevent modifying objects after creation (compatible w/ Python v2.2).
+# TODO: 2. Allow modifying objects after creation, keeping string cache in sync.
 # TODO: 3. Implement a list-of-strings type, which the tostring() (or
 #          some other method with a better name) can use, to eliminate
 #          superfluous string concatenations.
+
+
+##############################################################################
+# Parameters
+##############################################################################
+
+DEBUG               = 0     # (0: None, 1: Basic, 2: Verbose)
+MAXNUMSIGNATURES    = 8     # Maximum number of signatures in a SISController
 
 
 ##############################################################################
@@ -67,7 +72,7 @@ EInstFileRunOptionByMimeType    = 1 << 3
 EInstFileRunOptionWaitEnd       = 1 << 4
 EInstFileRunOptionSendEnd       = 1 << 5
 
-EInstFileTextOptionContinue     = 1 << 9
+EInstFileTextOptionContinue     = 1 << 9    # Not used by makesis v. 4, 0, 0, 2
 EInstFileTextOptionSkipIfNo     = 1 << 10
 EInstFileTextOptionAbortIfNo    = 1 << 11
 EInstFileTextOptionExitIfNo     = 1 << 12
@@ -243,8 +248,8 @@ class SISFieldBase(object):
 
         if "fromstring" in kwds:
             if DEBUG > 1:
-                # DEBUG: Hex dump of string parameter.
-                symbianutil.hexdump(kwds["fromstring"])
+                # DEBUG: Dump of string parameter.
+                print repr(kwds["fromstring"])
 
             # Load instance variables from string.
             if len(kwds) != 1:
@@ -324,7 +329,7 @@ class SISFieldNormal(SISFieldBase):
                         raise ValueError("integral field preceded optional")
 
                     n = struct.calcsize(ffmt)
-                    field = struct.unpack(ffmt, string[pos:(pos+n)])[0]
+                    field = struct.unpack(ffmt, string[pos:(pos + n)])[0]
                     pos += n
                 else:
                     # SISField, read data from string or
@@ -567,8 +572,9 @@ class SISArray(SISFieldSpecial):
         except TypeError:
             del self.SISFields[key.start:key.stop]
 
-    def __iter__(self):
-        return self.SISFields.__iter__()
+# Not supported in Python v2.2, where __getitem__() is used instead.
+#    def __iter__(self):
+#        return self.SISFields.__iter__()
 
     def __len__(self):
         return self.SISFields.__len__()
@@ -942,14 +948,13 @@ class SISController(SISFieldNormal):
     def __init__(self, **kwds):
         # Convert a list of signatures to separate parameters
         # so that base class constructor can parse them.
-        # Support upto 8 signature certificates.
+        # Support upto MAXNUMSIGNATURES signature certificates.
         if "Signatures" in kwds:
-            numsig = 0
-            for sig in kwds["Signatures"]:
-                if numsig >= 8:
-                    raise ValueError("too many signatures for SISController")
-                kwds["Signature%d" % numsig] = sig
-                numsig += 1
+            signatures = kwds["Signatures"]
+            if len(signatures) > MAXNUMSIGNATURES:
+                raise ValueError("too many signatures for SISController")
+            for n in xrange(len(signatures)):
+                kwds["Signature%d" % n] = signatures[n]
             del kwds["Signatures"]
 
         # DataIndex is really not optional. However, calculating
@@ -975,6 +980,31 @@ class SISController(SISFieldNormal):
 
         # Parse keyword parameters.
         SISFieldNormal.__init__(self, **kwds)
+
+    # Helper routines to deal with the special signature fields.
+    def getsignatures(self):
+        # Return signatures as a list.
+        signatures = []
+        for n in xrange(MAXNUMSIGNATURES):
+            sig = self.__dict__["Signature%d" % n]
+            if sig != None:
+                signatures.append(sig)
+        return signatures
+
+    def setsignatures(self, signatures):
+        # Replace signatures with the ones from list. If there are
+        # less than MAXNUMSIGNATURES signatures in the list, the
+        # rest are erased. To erase all signatures, call
+        # controller.setsignatures([]).
+        numsig = len(signatures)
+        if numsig > MAXNUMSIGNATURES:
+            raise ValueError("too many signatures for SISController")
+        for n in xrange(MAXNUMSIGNATURES):
+            if n < numsig:
+                sig = signatures[n]
+            else:
+                sig = None
+            self.__dict__["Signature%d" % n] = sig
 
 class SISInfo(SISFieldNormal):
     '''Information about the SIS file'''
