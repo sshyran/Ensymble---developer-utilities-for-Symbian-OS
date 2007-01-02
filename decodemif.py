@@ -3,7 +3,7 @@
 
 ##############################################################################
 # decodemif.py - Decodes a Symbian OS v9.x multi-image file (MIF)
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This program is part of Ensymble developer utilities for Symbian OS(TM).
 #

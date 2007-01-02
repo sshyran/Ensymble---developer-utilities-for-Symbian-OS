@@ -3,7 +3,7 @@
 
 ##############################################################################
 # rscfile.py - Symbian OS compiled resource file (RSC) utilities
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #

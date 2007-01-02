@@ -3,7 +3,7 @@
 
 ##############################################################################
 # decodesisx.py - Decodes a Symbian OS v9.x SISX file
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This program is based on a whitepaper by Symbian's Security team:
 # Symbian OS v9.X SIS File Format Specification, Version 1.1, June 2006
