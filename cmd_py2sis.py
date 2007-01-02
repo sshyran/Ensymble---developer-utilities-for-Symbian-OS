@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_py2sis.py - Ensymble command line tool, py2sis command
-# Copyright 2006 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -41,28 +41,29 @@ import miffile
 # Help texts
 ##############################################################################
 
-shorthelp = 'Emulate "Python for S60" packaging tool "py2sis"'
+shorthelp = 'Create a SIS package for a "Python for S60" application'
 longhelp  = '''py2sis
     [--uid=0x01234567] [--appname=AppName] [--version=1.0.0]
     [--lang=EN,...] [--icon=icon.svg]
     [--shortcaption="App. Name",...] [--caption="Application Name",...]
-    [--cert=mycert.pem] [--privkey=mykey.pem] [--passphrase=12345]
-    [--caps=Cap1+Cap2+...] [--encoding=terminal,filesystem] [--verbose]
+    [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
+    [--passphrase=12345] [--caps=Cap1+Cap2+...]
+    [--encoding=terminal,filesystem] [--verbose]
     <src> [sisfile]
 
-Emulate "Python for S60" packaging tool "py2sis", i.e. create a
-SIS package from "Python for S60" script and auxiliary files.
+Create a SIS package for a "Python for S60" application.
 
 Options:
     src          - Source script or directory
     sisfile      - Path of the created SIS file
-    uid          - Symbian UID for the application
+    uid          - Symbian OS UID for the application
     appname      - Name of the application
     version      - Application version: X.Y.Z or X,Y,Z (major, minor, build)
     lang         - Comma separated list of two-character language codes
     icon         - Icon file in SVG-Tiny format
     shortcaption - Comma separated list of short captions in all languages
     caption      - Comma separated list of long captions in all languages
+    textfile     - Text file (or pattern, see below) to display during install
     cert         - Certificate to use for signing (PEM format)
     privkey      - Private key of the certificate (PEM format)
     passphrase   - Pass phrase of the private key (insecure, use stdin instead)
@@ -77,6 +78,17 @@ distributed.
 
 If no icon is given, the Python logo is used as the icon. The Python
 logo is a trademark of the Python Software Foundation.
+
+Text to display uses UTF-8 encoding. The file name may contain formatting
+characters that are substituted for each selected language. If no formatting
+characters are present, the same text will be used for all languages.
+
+    %%           - literal %
+    %n           - language number (01 - 99)
+    %c           - two-character language code in lowercase letters
+    %C           - two-character language code in capital letters
+    %l           - language name in English, using only lowercase letters
+    %l           - language name in English, using mixed case letters
 '''
 
 
@@ -88,6 +100,14 @@ MAXPASSPHRASELENGTH     = 256
 MAXCERTIFICATELENGTH    = 65536
 MAXPRIVATEKEYLENGTH     = 65536
 MAXICONFILESIZE         = 65536
+MAXTEXTFILELENGTH       = 1024
+
+
+##############################################################################
+# Global variables
+##############################################################################
+
+debug = False
 
 
 ##############################################################################
@@ -95,6 +115,8 @@ MAXICONFILESIZE         = 65536
 ##############################################################################
 
 def run(pgmname, argv):
+    global debug
+
     # Determine system character encodings.
     try:
         # getdefaultlocale() may sometimes return None.
@@ -119,11 +141,11 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:n:r:l:i:s:c:a:k:p:b:e:vh"
+    short_opts = "u:n:r:l:i:s:c:t:a:k:p:b:e:vh"
     long_opts = [
         "uid=", "appname=", "version=", "lang=", "icon=",
-        "shortcaption=", "caption=", "cert=", "privkey=", "passphrase=",
-        "caps=", "encoding=", "verbose", "debug", "help"
+        "shortcaption=", "caption=", "textfile=", "cert=", "privkey=",
+        "passphrase=", "caps=", "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
 
@@ -198,7 +220,7 @@ def run(pgmname, argv):
         outfile = pargs[1].decode(terminalenc).encode(filesystemenc)
         if os.path.isdir(outfile):
             # Output to directory, derive output name from input file name.
-            outfile = os.path.join(sisfile, "%s_v%d_%d_%d.sis" % (
+            outfile = os.path.join(outfile, "%s_v%d_%d_%d.sis" % (
                 basename, version[0], version[1], version[2]))
         if not outfile.lower().endswith(".sis"):
             outfile += ".sis"
@@ -239,6 +261,13 @@ def run(pgmname, argv):
     lang = opts.get("--lang", opts.get("-l", "EN")).split(",")
     numlang = len(lang)
 
+    # Verify that the language codes are correct.
+    for l in lang:
+        try:
+            symbianutil.langidtonum[l]
+        except KeyError:
+            raise ValueError("%s: no such language code" % l)
+
     # Get icon file name.
     icon = opts.get("--icon", opts.get("-i", None))
     if icon != None:
@@ -277,10 +306,19 @@ def run(pgmname, argv):
     if len(shortcaption) != numlang or len(caption) != numlang:
         raise ValueError("invalid number of captions")
 
-    # Get certificate file name.
+    # Load text files.
+    texts = []
+    textfile = opts.get("--textfile", opts.get("-t", None))
+    if textfile != None:
+        texts = readtextfiles(textfile, lang)
+
+    # Get certificate and its private key file names.
     cert = opts.get("--cert", opts.get("-a", None))
-    if cert != None:
+    privkey = opts.get("--privkey", opts.get("-k", None))
+    if cert != None and privkey != None:
+        # Convert file names from terminal encoding to filesystem encoding.
         cert = cert.decode(terminalenc).encode(filesystemenc)
+        privkey = privkey.decode(terminalenc).encode(filesystemenc)
 
         # Read certificate file.
         f = file(cert, "rb")
@@ -289,14 +327,6 @@ def run(pgmname, argv):
 
         if len(certdata) > MAXCERTIFICATELENGTH:
             raise ValueError("certificate file too large")
-    else:
-        # No certificate given, use a default certificate.
-        certdata = zlib.decompress(defaultcertdata.decode("base-64"))
-
-    # Get private key file name.
-    privkey = opts.get("--privkey", opts.get("-k", None))
-    if privkey != None:
-        privkey = privkey.decode(terminalenc).encode(filesystemenc)
 
         # Read private key file.
         f = file(privkey, "rb")
@@ -305,13 +335,14 @@ def run(pgmname, argv):
 
         if len(privkeydata) > MAXPRIVATEKEYLENGTH:
             raise ValueError("private key file too large")
-    else:
-        # No private key given, use a default private key.
-        privkeydata = zlib.decompress(defaultprivkeydata.decode("base-64"))
-
-    if (cert != None and privkey == None) or (cert == None and privkey != None):
-        raise ValueError("missing certificate or private key")
     elif cert == None and privkey == None:
+        # No certificate given, use the Ensymble default certificate.
+        # defaultcert.py is not imported when not needed. This speeds
+        # up program start-up a little.
+        import defaultcert
+        certdata = defaultcert.cert
+        privkeydata = defaultcert.privkey
+
         print ("%s: warning: no certificate given, using "
                "insecure built-in one" % pgmname)
 
@@ -320,6 +351,8 @@ def run(pgmname, argv):
         if uid3 < 0x80000000L:
             print ("%s: warning: UID is in the protected range "
                    "(0x00000000 - 0x7ffffff)" % pgmname)
+    else:
+        raise ValueError("missing certificate or private key")
 
     # Get pass phrase. Pass phrase remains in terminal encoding.
     passphrase = opts.get("--passphrase", opts.get("-p", None))
@@ -348,7 +381,6 @@ def run(pgmname, argv):
         verbose = True
 
     # Determine if debug output is requested.
-    debug = False
     if "--debug" in opts.keys():
         debug = True
 
@@ -364,13 +396,15 @@ def run(pgmname, argv):
     # srcdir        Directory of source files, filesystemenc encoded
     # srcfiles      List of filesystemenc encoded source file names in srcdir
     # outfile       Output SIS file name, filesystemenc encoded
-    # uid3          application UID3, long integer
+    # uid3          Application UID3, long integer
     # appname       Application name and install directory in device, in Unicode
     # version       A triple-item tuple (major, minor, build)
     # lang          List of two-character language codes, ASCII strings
     # icon          Icon data, a binary string typically containing a SVG-T file
     # shortcaption  List of Unicode short captions, one per language
     # caption       List of Unicode long captions, one per language
+    # textfile      File name pattern of text file(s) to display during install
+    # texts         Actual texts to display during install, one per language
     # cert          Certificate in PEM format
     # privkey       Certificate private key in PEM format
     # passphrase    Pass phrase of private key, terminalenc encoded string
@@ -381,8 +415,8 @@ def run(pgmname, argv):
         print
         print "Input file(s)     %s"        % " ".join(
             [s.decode(filesystemenc).encode(terminalenc) for s in srcfiles])
-        print "Output SIS-file   %s"        % (
-             outfile.decode(filesystemenc).encode(terminalenc))
+        print "Output SIS file   %s"        % (
+            outfile.decode(filesystemenc).encode(terminalenc))
         print "UID               0x%08x"    % uid3
         print "Application name  %s"        % appname.encode(terminalenc)
         print "Version           %d.%d.%d"  % (
@@ -394,6 +428,8 @@ def run(pgmname, argv):
             [s.encode(terminalenc) for s in shortcaption])
         print "Long caption(s)   %s"    % ", ".join(
             [s.encode(terminalenc) for s in caption])
+        print "Text file(s)      %s"        % ((textfile and
+            textfile.decode(filesystemenc).encode(terminalenc)) or "<none>")
         print "Certificate       %s"        % ((cert and
             cert.decode(filesystemenc).encode(terminalenc)) or "<default>")
         print "Private key       %s"        % ((privkey and
@@ -404,6 +440,13 @@ def run(pgmname, argv):
     # Generate SimpleSISWriter object.
     sw = sisfile.SimpleSISWriter(lang, caption, uid3, version, "Ensymble",
                                  ["Ensymble"] * numlang)
+
+    # Add text file or files to the SIS object. Text dialog is
+    # supposed to be displayed before anything else is installed.
+    if len(texts) == 1:
+        sw.addfile(texts[0], operation = sisfield.EOpText)
+    elif len(texts) > 1:
+        sw.addlangdepfile(texts, operation = sisfield.EOpText)
 
     # Generate an EXE stub and add it to the SIS object.
     exetarget = u"!:\\sys\\bin\\%s_0x%08x.exe" % (appname, uid3)
@@ -568,9 +611,48 @@ def parseversion(version):
 
     return parts[0:3]
 
+def readtextfiles(pattern, languages):
+    '''Read language dependent text files
+
+    Files are assumed to be in UTF-8 encoding and re-encoded
+    in UCS-2 (UTF-16LE) for Symbian OS to display during installation.'''
+
+    if "%" not in pattern:
+        # Only one file, read it.
+        filenames = [pattern]
+    else:
+        filenames = []
+        for langid in languages:
+            langnum  = symbianutil.langidtonum[langid]
+            langname = symbianutil.langnumtoname[langnum]
+
+            # Replace formatting characters in file name pattern.
+            filename = pattern
+            filename = filename.replace("%n", "%02d" % langnum)
+            filename = filename.replace("%c", langid.lower())
+            filename = filename.replace("%C", langid.upper())
+            filename = filename.replace("%l", langname.lower())
+            filename = filename.replace("%L", langname)
+            filename = filename.replace("%%", "%")
+
+            filenames.append(filename)
+
+    texts = []
+
+    for filename in filenames:
+        f = file(filename, "r") # Read as text.
+        text = f.read(MAXTEXTFILELENGTH + 1)
+        f.close()
+
+        if len(text) > MAXTEXTFILELENGTH:
+            raise ValueError("%s: text file too large" % filename)
+
+        texts.append(text.decode("UTF-8").encode("UTF-16LE"))
+
+    return texts
 
 ##############################################################################
-# Embedded data: EXE stub, default certificate, private key and icon, resource
+# Embedded data: EXE stub, private key and icon, application resource
 ##############################################################################
 
 # This is the Symbian application stub, which starts the Python interpreter
@@ -666,37 +748,6 @@ execstubdata = '''
     NXqOsyaZq+t+1qddr9Xkk6ys9Dn+rg19j12r1+Tc3Q6vnYNXrtTLl63+rVXeSYmwP8L0X97Y5p1e
     yVoK4yun5S65XVZnccrZ10WOrHx4/uR7ZaitrK/u5DMjvZG3keDInSNxI8WR48ifI8qRupHnSIL5
     jBwbjyI9hHXj6yPdx9UtrFrtbsVvBW3C3ireOtjLKV8ivs6/T19zyX//'''
-
-# Default certificate, totally insecure, for testing only!
-# Base-64-encoded, zlib-compressed PEM data (which is itself base-64 encoded...)
-defaultcertdata = '''
-    eJxtksuSokAURPd8xeyNDqAF1GW9Ggqo0oICgZ0vEFAR0UH4+tFezGKm7zIjIzLuyfz4eB0kNuW/
-    EAkk/aIISPIWPxRGKbIxQiC1C9BTCArqAq8c3GU9VtS9MKDZKGztkG6nWBAIRQQYZE8iwQoWPFYg
-    YBKR+LGbnu7p+Xli0EiwBJ8M1wOXxGAV6flX89LYv1pPRhIoDMxtoEcEPBkN1uZ4WOvl1o76Ipv3
-    WKSu12T0+HvHwXc6wEWqAUZtFzQ2BB6fKbp/5r43LPPTxjQfzdbaZwJi/rhd9XEsZ7rFh/CpNRPs
-    r7XJdbNi5RXZQuNJN9w0PMkV3Ur9Mstb7QHvy3uzOJTVmH8hXF3CaUV970bbeuHLRItMWZ4RaYO6
-    mx93k9bTsjYyVko3CYw8S6HlDL2705l/aERYJZE6DJ65N8r5thIgNU1QMAiAXe0xHBjU3m/vcSHW
-    CoRhwTfUmoqz4djHY+HWVuuceFJJFY0Qv0k7ISMrDKziB6/y12yR5Aqjb7I/g10jJFDTlfLKjAFl
-    46vNd41OwAiUAAPhqD91DowXbXr7LLoGW8DsuvosO6xHahao8WYeKtVCvfOmc2jF9suWWe0tflza
-    0bhdzu0jr/noGury5GSpSeGB8Xho05TlexRNpU3UHisnvaF4pu/IvNNEfU1Gui1Xvdt4QmhqF+3l
-    /f6ZlUd0rXHdGmxHb+q2y4Ju9lvGT9OaK1SPD7UeL1auZomdGyjfCycc/7/6P+Pc9Q0='''
-
-# Default certificate private key, totally insecure, for testing only!
-# Base-64-encoded, zlib-compressed PEM data (which is itself base-64 encoded...)
-defaultprivkeydata = '''
-    eJxtk7eSo0AABXO+YnPVFoxAmGADnBB+ECAQGd4jvPv627v4On1Z1+vv7184UZKNr6fNfsGn/GId
-    8UsV33+Hb0SXZd7PZY5lVS63+Cpl7FtlH1PV3bwljQbp0nkua53RQCYxTSxMWsX1lKgwP8AMBw+p
-    TnmwitoQXpQ+MCzaMWnLE61PzloeOWMI/c+HxncrJ27YTBz8MRxqD20MMHfTJfocKdQ60KDsw6Gc
-    pbAxBQrW6ePqsWlBT7xvODw+iOIHAEhP5eKn8ioRGCuZqSULrMVyCPuROFZWRsOOgve4MaSWOWKN
-    65f5fCSaQikUnhtDN1Jg8Bu/JA/cKaiYssOgzPuamRHHfknyrb3od4HOMI9+vpX32z0Tuc0acr37
-    vMJCahtsLVwkYlwfNYAlLfmbIWQuWm0kUpifh98eRe7yDgY2OQG5TVYo7PggXC1mltY9PwRsUW7B
-    6at0z9Yie336tRgoii5SGsK+b0aS7UG9T60WnccaeBdrZcCW35l9rE82vUe5G54HB+xJNh1cA53m
-    9XHkeF4EAYXsRrRYh6e4m8KxuqDKTEOmkdRCRZMyPvjcnkMubabJVUuoEdDx5GoUxAIvVQFToDUj
-    hydhgn4PNLW/+qUwVC/afd1D3WhK87qeWEzovCUtVOehKvNi1suamBPdAyom0GqNRoRsFgEzn95l
-    w+WdJM+8rqy2dJ5oSF7hQB/4S7XRBygC3I3glmVAKrM4jJVHUvOWxR8I0On45fz+ryUBYPKChHMs
-    gAzt+JCiV8XyS3N4FLdlqTT1OuD6tG3H6TbdpBeA2cIeqdOGe9syWZSe4Ipc2Tyo/a/pgffQiNwn
-    Zgjf84I5GbFXdRK7fZ7xBDZWfsJ+UjA6CC6+ijLTZsrQ0O7ELh43yg46RdCVoPUQrY/Y0K6395/2
-    NlP5zw/yLyHREP6f1h9R+B6O'''
 
 # Python logo as a base-64-encoded, zlib-compressed SVG XML data
 defaulticondata = '''
