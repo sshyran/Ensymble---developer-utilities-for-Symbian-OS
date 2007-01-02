@@ -16,17 +16,18 @@ This is the Ensymble developer utilities for
 programs for Symbian OS software development.
 
 <P>
-This is a preview release with limited functionality. For now, Ensymble
-only supports installation package (SIS) generation for
-<A HREF="http://sourceforge.net/projects/pys60">Python for S60</A> scripts.
-Support for other tasks will follow.
+Current focus of Ensymble development is to provide useful tools for making
+<A HREF="http://sourceforge.net/projects/pys60">Python for S60</A> programs.
+Supported functions include generation of SIS (installation) packages,
+(re-)signing existing SIS packages and modifying extension DLL headers.
+Support for other Symbian OS software development tasks will follow.
 
 <P>
-Ensymble aims to provide a cross-platform, open-source way to do Symbian
-OS software development, supporting Symbian OS versions 9.1 and later.
-The original tools by Symbian are closed source and only available for
-the Windows&reg; operating system. Ensymble is under the GNU
-<A HREF="http://www.gnu.org/licenses/gpl.html">GPL</A> license.
+A long term goal of Ensymble is to provide a cross-platform, open-source
+way to do Symbian OS software development, supporting Symbian OS
+versions 9.1 and later. The original tools by Symbian are closed source
+and only available for the Windows&reg; operating system. Ensymble is
+under the GNU <A HREF="http://www.gnu.org/licenses/gpl.html">GPL</A> license.
 
 <H2>Requirements</H2>
 
@@ -56,7 +57,7 @@ supported by Ensymble. A list of editions for Nokia phones is available from
 cross-platform version of py2sis, compatible with S60 1st and 2nd Edition.)
 
 <P>
-<B>NOTE:</B> Ensymble-generated SIS packages for Python for S60 scripts have 
+<B>NOTE:</B> Ensymble-generated SIS packages for Python for S60 scripts have
 to be installed into the main phone memory. Installing to memory card will not
 work with Python for S60 v1.3.8 to v1.3.13. This is a bug in Python for S60
 and will hopefully be corrected in an upcoming release.
@@ -68,6 +69,35 @@ are ready to use. Just copy the file to a suitable place (on command search
 path) and start using it!
 
 <H3>Latest</H3>
+
+v0.20 2007-01-01
+<UL>
+<LI>Source:
+<A HREF="ensymble-0.20.tar.gz">ensymble-0.20.tar.gz</A> (84 kB)</LI>
+<LI>Pre-squeezed version for Python v2.2:
+<A HREF="ensymble_python2.2-0.20.py">ensymble_python2.2-0.20.py</A> (77 kB)</LI>
+<LI>Pre-squeezed version for Python v2.3:
+<A HREF="ensymble_python2.3-0.20.py">ensymble_python2.3-0.20.py</A> (69 kB)</LI>
+<LI>Pre-squeezed version for Python v2.4:
+<A HREF="ensymble_python2.4-0.20.py">ensymble_python2.4-0.20.py</A> (67 kB)</LI>
+<LI>Pre-squeezed version for Python v2.5:
+<A HREF="ensymble_python2.5-0.20.py">ensymble_python2.5-0.20.py</A> (66 kB)</LI>
+<LI>Documentation:
+<A HREF="README-0.20.txt">README-0.20.txt</A> (24 kB)</LI>
+</UL>
+<P>
+Changes:
+<UL>
+<LI>Revamped documentation. Now every command and option is explained.</LI>
+<LI>Added signsis command for (re-)signing SIS files.</LI>
+<LI>Added altere32 command for altering pre-compiled Symbian EXEs and DLLs.</LI>
+<LI>Implemented text file option for py2sis command. This is a requirement of Symbian's
+<A HREF="https://www.symbiansigned.com/app/page/overview/freewareFaq">Freeware Route to Market</A>.</LI>
+<LI>Made py2sis language option more robust against mistyped language codes.</LI>
+<LI>Miscellaneous clean-ups</LI>
+</UL>
+
+<H3>Older versions</H3>
 
 v0.15 2006-11-18
 <UL>
@@ -90,8 +120,6 @@ Changes:
 <LI>Rewrote certificate to binary conversion. Fixes certificate problems on Windows. Some generated SIS files were not installable.</LI>
 <LI>Removed line feed after pass phrase for OpenSSL. It caused "wrong pass phrase" errors on Windows.</LI>
 </UL>
-
-<H3>Older versions</H3>
 
 v0.14 2006-11-12
 <UL>
@@ -192,6 +220,12 @@ First public preview release: v0.10 2006-09-24
 
 <H2>Project history</H2>
 <UL>
+<LI><STRONG>2007-01-01</STRONG>
+<BR>Wrote a lot of documentation.
+<BR>Added two new commands: signsis and altere32.
+<BR>Added support for displaying text during installation of SIS packages.
+<BR>Lots of other, under-the-hood fixes and additions.
+</LI>
 <LI><STRONG>2006-11-18</STRONG>
 <BR>Fixed several Windows compatibility problems with certificates and pass phrases.
 </LI>
@@ -225,6 +259,10 @@ not always work on Windows.
 <A HREF="http://sourceforge.net/projects/pys60">Python for S60</A> on
 SourceForge</LI>
 <LI>
+<A HREF="http://discussion.forum.nokia.com/forum/forumdisplay.php?f=102">Python
+for S60 discussion board</A>, where questions about Ensymble are
+answered</LI>
+<LI>
 <A HREF="http://developer.symbian.com/main/downloads/papers/SymbianOSv91/softwareinstallsis.pdf">Symbian OS v9.X SIS File Format Specification</A> from
 Symbian</LI>
 <LI>
@@ -236,7 +274,7 @@ Symbian</LI>
 
 <HR>
 <P ALIGN="right">
-Copyright &copy; 2006 Jussi Ylänen
+Copyright &copy; 2006, 2007 Jussi Ylänen
 <BR>
 jussi &lt;dot&gt; ylanen &lt;at&gt; iki &lt;dot&gt; fi
 
