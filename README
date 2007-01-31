@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                     Copyright 2006, 2007 Jussi Ylänen
 
-                         Last updated 2007-01-01
+                         Last updated 2007-02-01
 
 
 ABOUT
@@ -12,10 +12,11 @@ collection of Python® modules and command line programs for Symbian OS
 [1] software development.
 
 Current focus of Ensymble development is to provide useful tools for
-making "Python for S60" [2] programs. Supported functions include
-generation of SIS (installation) packages, (re-)signing existing SIS
-packages and modifying extension DLL headers. Support for other Symbian
-OS software development tasks will follow.
+making "Python for S60" [2] programs.Supported functions include
+generation of SIS (installation) packages, merging several SIS packages
+into one, (re-)signing existing SIS packages and modifying extension DLL
+headers. Support for other Symbian OS software development tasks will
+follow.
 
 A long term goal of Ensymble is to provide a cross-platform, open-source
 way to do Symbian OS software development, supporting Symbian OS
@@ -56,7 +57,7 @@ tested on the following systems:
 
 Note: Ensymble-generated SIS packages for Python for S60 scripts have to
 be installed into the main phone memory. Installing to memory card will
-not work with Python for S60 v1.3.8 - v1.3.15. This is a bug in Python
+not work with Python for S60 v1.3.8 - v1.3.17. This is a bug in Python
 for S60 and will hopefully be corrected in an upcoming release.
 
 
@@ -66,8 +67,8 @@ INSTALLATION
 Care has been taken to ensure that minimum amount of extra software is
 needed to run Ensymble. A working installation of Python is required
 (see VERSION COMPATIBILITY above). In addition, the OpenSSL command line
-tool [8] is required for installation package (SIS) generation and
-(re-)signing. Any recent version will do, and can usually be found
+tool [8] is required for installation package (SIS) generation, merging
+and (re-)signing. Any recent version will do, and can usually be found
 pre-installed. For Windows, the Stunnel OpenSSL binaries [9] are
 recommended, but any other binaries will do as well.
 
@@ -105,6 +106,7 @@ list all the available commands.
 The following commands are currently supported by Ensymble:
 
     altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+    mergesis   Merge several SIS packages into one
     py2sis     Create a SIS package for a "Python for S60" application
     signsis    Sign a SIS package
     version    Print Ensymble version
@@ -148,10 +150,11 @@ EXAMPLES
 
     Ensymble developer utilities for Symbian OS
 
-    usage: ensymble.py command [command options]...
+    usage: cmdmain.py command [command options]...
 
     Commands:
         altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+        mergesis   Merge several SIS packages into one
         py2sis     Create a SIS package for a "Python for S60" application
         signsis    Sign a SIS package
         version    Print Ensymble version
@@ -269,6 +272,91 @@ Note: When modifying the UID, the secure ID should be modified
 accordingly. Modifying UIDs of application EXEs is generally not
 possible, because applications usually include the UID in program code
 as well.
+
+
+The "mergesis" command
+----------------------
+
+SYNOPSIS
+    $ ensymble.py mergesis
+        [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
+        [--encoding=terminal,filesystem] [--verbose]
+        <infile> [mergefile]... <outfile>
+
+
+DESCRIPTION
+
+The "mergesis" command takes a set of SIS files and inserts them as
+unconditional embedded SIS files in the first one. The resulting SIS
+package is then signed with the certificate provided. None of the
+certificates of the first SIS file are preserved.
+
+Note: The "mergesis" command will only work with SIS files that do not
+already contain other embedded SIS files.
+
+
+PARAMETERS
+
+    infile
+
+Path of the base SIS file.
+
+    mergefile
+
+Zero or more SIS files to embed in the base sis file.
+
+    outfile
+
+Path of the resulting SIS file. If a directory name is given, base SIS
+file name is used as the output file name.
+
+    --cert=mycert.cer
+
+Certificate to use for signing in PEM (text) format. If no certificate
+and its private key are given, Ensymble uses a default self-signed
+certificate (see option "--cert" for command "py2sis" above).
+
+    --privkey=mykey.key
+
+Private key of the certificate in PEM (text) format. If option "--cert"
+(above) is given, this option is required as well.
+
+    --passphrase=12345
+
+Pass phrase of the private key.
+
+Note: Using command line options to give the pass phrase is insecure.
+Any user of the computer will be able to see command lines of started
+programs and thus will see the pass phrase in plain view. Instead,
+standard input should be used (see examples below).
+
+If no pass phrase is given on the command line or standard input, it
+will be asked interactively.
+
+
+EXAMPLES
+
+Note: The command lines below may be wrapped over multiple lines due to
+layout constraints. In reality, each of them should be contained in one
+physical command line.
+
+    $ ensymble.py mergesis
+        --cert=mycert.cer --key=mykey.key --passphrase=12345
+        myapp_v1_0_0.sis PythonForS60_1_3_17_3rdEd_selfsigned.SIS
+        myapp_standalone_v1_0_0.sis
+
+A Python for S60 script "myapp_v1_0_0.sis" will be merged with Python
+runtime SIS "PythonForS60_1_3_17_3rdEd_selfsigned.SIS". A new SIS file
+"myscript_standalone_v1_0_0.sis" will be created and signed with
+"mycert.cer" using private key "mykey.key".
+
+    $ echo "12345" | ensymble.py mergesis
+        --cert=mycert.cer --key=mykey.key
+        basefile.sis addon1.sis addon2.sis
+
+Pass phrase can be given in Ensymble standard input, so that it will not
+be visible to all users of the computer (see option "--passphrase"
+above).
 
 
 The "py2sis" command
@@ -606,13 +694,16 @@ No parameters
 EXAMPLES
 
     $ ensymble.py version
-    Ensymble v0.20 2007-01-01
+    Ensymble v0.21 2007-02-01
 
 The version string is printed.
 
 
 PROJECT HISTORY
 ===============
+
+2007-02-01
+Added mergesis command for combining several SIS files into one.
 
 2007-01-01
 Released Ensymble version 2007-01-01 v0.20
