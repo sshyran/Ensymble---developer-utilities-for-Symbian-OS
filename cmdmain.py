@@ -26,8 +26,9 @@ import sys
 import os
 
 # Import command modules.
-cmddict     = {"altere32": None, "py2sis":  None,
-               "signsis":  None, "version": None}
+cmddict     = {"altere32": None, "mergesis": None,
+               "py2sis":  None, "signsis":  None,
+               "version": None}
 for cmdname in cmddict.keys():
     cmddict[cmdname] = __import__("cmd_%s" % cmdname, globals(), locals(), [])
 
