@@ -100,6 +100,7 @@ MAXPASSPHRASELENGTH     = 256
 MAXCERTIFICATELENGTH    = 65536
 MAXPRIVATEKEYLENGTH     = 65536
 MAXICONFILESIZE         = 65536
+MAXOTHERFILESIZE        = 1024 * 1024 * 8   # Eight megabytes
 MAXTEXTFILELENGTH       = 1024
 
 
@@ -513,8 +514,11 @@ def run(pgmname, argv):
     if len(srcfiles) == 1:
         # Read file.
         f = file(os.path.join(srcdir, srcfiles[0]), "rb")
-        string = f.read()
+        string = f.read(MAXOTHERFILESIZE + 1)
         f.close()
+
+        if len(string) > MAXOTHERFILESIZE:
+            raise ValueError("%s: input file too large" % srcfiles[0])
 
         # Add file to the SIS object. One file only, rename it to default.py.
         target = "default.py"
@@ -525,8 +529,11 @@ def run(pgmname, argv):
         for srcfile in srcfiles:
             # Read file.
             f = file(os.path.join(srcdir, srcfile), "rb")
-            string = f.read()
+            string = f.read(MAXOTHERFILESIZE + 1)
             f.close()
+
+            if len(string) > MAXOTHERFILESIZE:
+                raise ValueError("%s: input file too large" % srcfile)
 
             # Add file to the SIS object.
             target = srcfile.decode(filesystemenc).replace(os.sep, "\\")
@@ -612,7 +619,7 @@ def parseversion(version):
     return parts[0:3]
 
 def readtextfiles(pattern, languages):
-    '''Read language dependent text files
+    '''Read language dependent text files.
 
     Files are assumed to be in UTF-8 encoding and re-encoded
     in UCS-2 (UTF-16LE) for Symbian OS to display during installation.'''
