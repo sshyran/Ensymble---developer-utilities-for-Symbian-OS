@@ -6,9 +6,9 @@ if test -z "$1"; then
 fi
 
 squeeze/squeeze.py -1 -o ensymble -b cmdmain cmdmain.py \
-  cmd_altere32.py cmd_mergesis.py cmd_py2sis.py cmd_signsis.py cmd_version.py \
-  cryptutil.py miffile.py rscfile.py sisfield.py sisfile.py symbianutil.py \
-  defaultcert.py
+  cmd_altere32.py cmd_mergesis.py cmd_py2sis.py cmd_signsis.py \
+  cmd_simplesis.py cmd_version.py cryptutil.py miffile.py rscfile.py \
+  sisfield.py sisfile.py symbianutil.py defaultcert.py
 cp ensymble.py "$1"
 chmod +x "$1"/ensymble.py
 rm ensymble.py
