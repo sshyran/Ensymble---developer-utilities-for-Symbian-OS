@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                     Copyright 2006, 2007 Jussi Ylänen
 
-                         Last updated 2007-02-01
+                         Last updated 2007-02-08
 
 
 ABOUT
@@ -12,7 +12,7 @@ collection of Python® modules and command line programs for Symbian OS
 [1] software development.
 
 Current focus of Ensymble development is to provide useful tools for
-making "Python for S60" [2] programs.Supported functions include
+making "Python for S60" [2] programs. Supported functions include
 generation of SIS (installation) packages, merging several SIS packages
 into one, (re-)signing existing SIS packages and modifying extension DLL
 headers. Support for other Symbian OS software development tasks will
@@ -150,13 +150,14 @@ EXAMPLES
 
     Ensymble developer utilities for Symbian OS
 
-    usage: cmdmain.py command [command options]...
+    usage: ensymble.py command [command options]...
 
     Commands:
         altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
         mergesis   Merge several SIS packages into one
         py2sis     Create a SIS package for a "Python for S60" application
         signsis    Sign a SIS package
+        simplesis  Create a SIS package from a directory structure
         version    Print Ensymble version
 
     Use 'ensymble.py command --help' to get command specific help.
@@ -427,10 +428,10 @@ you have already ordered UIDs for 1st or 2nd Edition phones, to use
 these UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
 changed to an "f".
 
-Also note: Changing the application name (or source file / directory
-name in case no application name is explicitly given), the temporary UID
-changes and the SIS package will be considered a new application on the
-phone.
+Also note: When changing the application name (or source file /
+directory name in case no application name is explicitly given), the
+temporary UID changes and the SIS package will be considered a new
+application on the phone.
 
     --version=1.0.0
     -r 1.0.0
@@ -673,6 +674,192 @@ be visible to all users of the computer (see option "--passphrase"
 above).
 
 
+The "simplesis" command
+-----------------------
+
+SYNOPSIS
+
+    $ ensymble.py simplesis
+        [--uid=0x01234567] [--version=1.0.0] [--lang=EN,...]
+        [--caption="Package Name",...] [--textfile=mytext_%C.txt]
+        [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
+        [--encoding=terminal,filesystem] [--verbose]
+        <srcdir> [sisfile]
+
+
+DESCRIPTION
+
+The "simplesis" command is used to create a Symbian installation package
+(SIS) from an existing directory structure. Conditional inclusion of
+files, dependencies or other fancy features of SIS files are not
+supported.
+
+
+PARAMETERS
+
+    srcdir
+
+The source directory name. The directory structure is preserved under
+the installation drive, chosen by the user installing the SIS file.
+
+To clarify: files and directories under "srcdir" will be located on the
+root of the installation drive.
+
+    sisfile
+
+Path of the SIS file to create. If a directory name is given, output
+file name is derived from source directory name and package version (see
+option "--version" below). This is also the case when no SIS file name
+is given.
+
+    --uid=0x01234567
+    -u 0x01234567
+
+Symbian UID for the package. If the UID option is not given, the source
+directory name will be used to generate a temporary UID.
+
+Note: Use a real UID for all packages to be distributed. The
+auto-generated test UID is only meant for development and testing, not
+for real packages. UIDs can be ordered from Symbian Signed [12]. If you
+have already ordered UIDs for 1st or 2nd Edition phones, to use these
+UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
+changed to an "f".
+
+Also note: When changing the source directory name, the temporary UID
+changes and the SIS package will be considered a new application on the
+phone.
+
+    --version=1.0.0
+    -r 1.0.0
+
+Package version: X.Y.Z or X,Y,Z (major, minor, build). There may be a
+"v" or "V" in front of the major number. Minor and build numbers are
+optional.
+
+If the version option is not given it defaults to 1.0.0.
+
+    --lang=EN,...
+    -l EN,...
+
+Comma separated list of two-character language codes. These are the
+languages that the SIS file claims to support, English by default.
+Symbian installation tools reference [13] lists the available language
+codes.
+
+    --caption="Application Name",...
+    -c "Application Name",...
+
+Comma separated list of package captions in all selected languages, i.e.
+there must be as many comma separated captions as there are languages
+listed with the "--lang" option. If no captions are given, source
+directory name is used (see option "srcdir" above).
+
+Package caption is displayed during application installation.
+
+    --textfile=mytext_%C.txt
+    -t mytext_%C.txt
+
+Text file (or pattern, see below) to display during install. If none is
+given, no extra text will be displayed during install.
+
+Files to display are in UTF-8 encoding, without Byte-Order Marker (BOM).
+The file name may contain formatting characters that are substituted for
+each selected language (see option "--lang" above). If no formatting
+characters are present, the same text will be used for all languages.
+
+    %%           - literal %
+    %n           - language number (01 - 99)
+    %c           - two-character language code in lowercase letters
+    %C           - two-character language code in capital letters
+    %l           - language name in English, using only lowercase letters
+    %l           - language name in English, using mixed case letters
+
+For example, if there are files named "mytext_EN.txt", "mytext_GE.txt"
+and "mytext_SP.txt", a pattern of "mytext_%C.txt" will be able to use
+them.
+
+    --cert=mycert.cer
+    -a mycert.cer
+
+Certificate to use for signing in PEM (text) format.
+
+SIS files for Symbian OS v9 and later are required to be digitally
+signed. Unsigned packages will not install on the phone. A
+self-generated ("self-signed" in crypto parlance) certificate will do,
+but only a restricted subset of features ("capabilities", see option
+"--caps" below) are available for self-signed applications.
+
+If no certificate and its private key are given, Ensymble uses a default
+self-signed certificate. Software authors are encouraged to create their
+own unique certificates for SIS packages that are to be distributed.
+
+    --privkey=mykey.key
+    -k mykey.key
+
+Private key of the certificate in PEM (text) format. If option "--cert"
+(above) is given, this option is required as well.
+
+    --passphrase=12345
+    -p 12345
+
+Pass phrase of the private key.
+
+Note: Using command line options to give the pass phrase is insecure.
+Any user of the computer will be able to see command lines of started
+programs and thus will see the pass phrase in plain view. Instead,
+standard input should be used (see examples below).
+
+If no pass phrase is given on the command line or standard input, it
+will be asked interactively.
+
+    --caps=Cap1+Cap2+...
+    -b Cap1+Cap2+...
+
+Capability names, separated by "+". If no capability option is given,
+the application will not have any special capabilities. Symbian Signed
+[12] has an FAQ which explains all the available capabilities.
+
+
+EXAMPLES
+
+Note: The command lines below may be wrapped over multiple lines due to
+layout constraints. In reality, each of them should be contained in one
+physical command line.
+
+    $ ls -R mymodule
+    mymodule:
+    resource/  sys/
+
+    mymodule/resource:
+    apps/  mymodule.py
+
+    mymodule/resource/apps:
+    mymodule.rsc
+
+    mymodule/sys:
+    bin/
+
+    mymodule/sys/bin:
+    _mymodule.pyd
+    $ ensymble.py simplesis mymodule
+
+This generates a SIS file called "mymodule_v1_0_0.sis" in current
+working directory. Contents of the SIS file are directly taken from
+directory "mymodule" and the relative path of each file is preserved.
+The SIS file is ready to be uploaded to a S60 3rd Edition phone. Package
+version defaults to 1.0.0, a test UID is auto-generated for the package
+and a default self-signed certificate is used to digitally sign the SIS
+file.
+
+    $ echo "12345" | ensymble.py py2sis
+        --cert mycert.cer --privkey mykey.key
+        mymodule
+
+Pass phrase can be given in Ensymble standard input, so that it will not
+be visible to all users of the computer (see option "--passphrase"
+above).
+
+
 The "version" command
 ---------------------
 
@@ -702,7 +889,13 @@ The version string is printed.
 PROJECT HISTORY
 ===============
 
+2007-02-08
+Released Ensymble version 2007-02-08 v0.22
+Added simplesis command for creating a SIS package out of a directory structure.
+Added maximum file size sanity check for py2sis command.
+
 2007-02-01
+Released Ensymble version 2007-02-01 v0.21
 Added mergesis command for combining several SIS files into one.
 
 2007-01-01
