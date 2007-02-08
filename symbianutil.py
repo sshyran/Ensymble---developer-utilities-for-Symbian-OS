@@ -82,20 +82,38 @@ def uidstostring(uid1, uid2, uid3):
     crc = uidcrc(uid1, uid2, uid3)
     return struct.pack("<LLLL", uid1, uid2, uid3, crc)
 
+def ise32image(string):
+    '''Checks if a given string contains a valid E32Image header'''
+
+    if len(string) < 156:
+        # Minimum header size is 156 bytes.
+        return False
+
+    # Get UIDs as integers.
+    uid1, uid2, uid3 = struct.unpack("<LLL", string[:12])
+
+    if uid1 not in (0x1000007AL, 0x10000079L) or string[16:20] != "EPOC":
+        # Wrong UIDs or cookie.
+        return False
+
+    uidstr = uidstostring(uid1, uid2, uid3)
+    if uidstr != string[:16]:
+        # Wrong UID checksum.
+        return False
+
+    return True
+
 def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
                 capabilities = None):
     '''Return a modified e32image (or just the header) with UID checksum
     and header checksum (CCITT CRC-32) recalculated. Optionally modify
     the UID3, secure ID and vendor ID.'''
 
-    if len(image) < 156:
-        raise ValueError("not enough data for a complete e32image header")
+    if not ise32image(image):
+        raise ValueError("not a valid e32image header")
 
     # Get original UIDs as integers.
     uid1, uid2, uid3_orig = struct.unpack("<LLL", image[:12])
-
-    if uid1 not in (0x1000007AL, 0x10000079L) or image[16:20] != "EPOC":
-        raise ValueError("not a valid e32image header")
 
     # Get modified or original IDs depending on parameters. Convert to strings.
     if uid3 == None:
