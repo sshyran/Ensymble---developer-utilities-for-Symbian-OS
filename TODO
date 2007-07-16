@@ -1,3 +1,7 @@
+Integrate infoe32 command from Martin Storsjö <martin@martin.st>.
+
+Make it possible to set vendor names in SIS, for Symbian Signed packages.
+
 Try not to copy/paste so much.
 
 Dev-cert-request command. Needs IMEI and capabilities as extra data.
