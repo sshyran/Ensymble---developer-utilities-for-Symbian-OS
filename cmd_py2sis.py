@@ -544,8 +544,10 @@ def run(pgmname, argv):
     sw.addtargetdevice(0x101f7961L, (0, 0, 0), None,
                        ["Series60ProductID"] * numlang)
 
-    # Add "Python for S60" dependency, version 1.3.8 onwards.
-    sw.adddependency(0xf0201510L, (1, 3, 8), None,
+    # Add "Python for S60" dependency, version 1.4.0 onwards.
+    # NOTE: Previous beta versions of Python for S60 had a
+    # different UID3 (0xf0201510).
+    sw.adddependency(0x2000b1a0L, (1, 4, 0), None,
                      ["Python for S60"] * numlang)
 
     # Add certificate.
