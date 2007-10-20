@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                     Copyright 2006, 2007 Jussi Ylänen
 
-                         Last updated 2007-07-16
+                         Last updated 2007-10-18
 
 
 ABOUT
@@ -154,6 +154,7 @@ EXAMPLES
 
     Commands:
         altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+        infoe32    Show the IDs and capabilities of e32image files (EXEs, DLLs)
         mergesis   Merge several SIS packages into one
         py2sis     Create a SIS package for a "Python for S60" application
         signsis    Sign a SIS package
@@ -275,6 +276,53 @@ possible, because applications usually include the UID in program code
 as well.
 
 
+The "infoe32" command
+---------------------
+
+SYNOPSIS
+
+    $ ensymble.py infoe32
+    [--encoding=terminal,filesystem] [--verbose]
+    <infile>...
+
+
+DESCRIPTION
+
+The "infoe32" displays information about Symbian e32image files (Symbian
+EXEs and DLLs). All three UIDs as well as the vendor ID and secure ID
+are printed. Capabilities are displayed textually and as a hexadecimal
+number.
+
+
+PARAMETERS
+
+    infile
+
+One or more e32image files to inspect.
+
+
+EXAMPLES
+
+    $ ensymble.py infoe32 myprogram.pyd somelibrary.dll
+    myprogram.exe:
+        UID1          0x1000007a
+        UID2          0x100039ce
+        UID3          0x12345678
+        Secure ID     0x12345678
+        Vendor ID     0x00000000
+        Capabilities  0x0 (NONE)
+    somelibrary.dll:
+        UID1          0x10000079
+        UID2          0x00000000
+        UID3          0x00000000
+        Secure ID     0x00000000
+        Vendor ID     0x00000000
+        Capabilities  0xff7be (ALL-TCB-DRM-AllFiles)
+
+This will display information about "myprogram.exe" and
+"somelibrary.dll".
+
+
 The "mergesis" command
 ----------------------
 
@@ -370,15 +418,16 @@ SYNOPSIS
         [--lang=EN,...] [--icon=icon.svg]
         [--shortcaption="App. Name",...] [--caption="Application Name",...]
         [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
-        [--passphrase=12345] [--caps=Cap1+Cap2+...]
-        [--encoding=terminal,filesystem] [--verbose]
+        [--passphrase=12345] [--caps=Cap1+Cap2+...] [--vendor="Vendor Name",...]
+        [--autostart] [--encoding=terminal,filesystem] [--verbose]
         <src> [sisfile]
 
 
 DESCRIPTION
 
 The "py2sis" command is used to pack a Python for S60 application script
-and its auxiliary files (if any) into a Symbian installation package (SIS).
+and its auxiliary files (if any) into a Symbian installation package
+(SIS).
 
 
 PARAMETERS
@@ -426,7 +475,7 @@ including comments and as part of string literals. It is of the form
     SYMBIAN_UID = UID
 
 , where whitespace around the equals sign is optional. UID is in the
-same format as with the command line parameter (see parameter "uid"
+same format as with the command line parameter (see option "--uid"
 above).
 
 Note: Use a real UID for all applications to be distributed. The
@@ -458,7 +507,7 @@ including comments and as part of string literals. It is of the form
     SIS_VERSION = "1.0.0"
 
 , where whitespace around the equals sign is optional. Version is in the
-same format as with the command line parameter (see parameter "version"
+same format as with the command line parameter (see option "--version"
 above), except that it may optionally be enclosed in single or double
 quotes.
 
@@ -561,6 +610,29 @@ will be asked interactively.
 Capability names, separated by "+". If no capability option is given,
 the application will not have any special capabilities. Symbian Signed
 [12] has an FAQ which explains all the available capabilities.
+
+    --vendor=Name,...
+    -d Name,...
+
+Comma separated list of vendor names in all selected languages, i.e.
+there must be as many comma separated vendor names as there are
+languages listed with the "--lang" option. Alternatively, if only one
+vendor name is given, it will be used for all languages. If no vendor
+names are given then "Ensymble" will be used.
+
+Vendor name is visible during installation and on the Application
+manager, except when using self-signed certificates (see option "--cert"
+above).
+
+    --autostart
+    -g
+
+Flag to control automatic startup of the application. On S60 3rd Edition
+phones, an application can register itself to be automatically started
+when the phone is turned on.
+
+Note: Self-signed applications and applications with UID in the 
+unprotected range cannot register to be automatically started.
 
 
 EXAMPLES
@@ -769,7 +841,7 @@ codes.
 Comma separated list of package captions in all selected languages, i.e.
 there must be as many comma separated captions as there are languages
 listed with the "--lang" option. If no captions are given, source
-directory name is used (see option "srcdir" above).
+directory name is used (see parameter "srcdir" above).
 
 Package caption is displayed during application installation.
 
@@ -898,13 +970,19 @@ No parameters
 EXAMPLES
 
     $ ensymble.py version
-    Ensymble v0.23 2007-07-16
+    Ensymble v0.24 2007-10-18
 
 The version string is printed.
 
 
 PROJECT HISTORY
 ===============
+
+2007-10-18
+Released Ensymble version v0.24 2007-10-18
+Added --autostart option to the py2sis command, like in the official py2sis.
+Added --vendor option to the py2sis command, useful when signing packages.
+Added infoe32 command contributed by Martin Storsjö.
 
 2007-07-16
 Released Ensymble version v0.23 2007-07-16
