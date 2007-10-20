@@ -47,8 +47,8 @@ longhelp  = '''py2sis
     [--lang=EN,...] [--icon=icon.svg]
     [--shortcaption="App. Name",...] [--caption="Application Name",...]
     [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
-    [--passphrase=12345] [--caps=Cap1+Cap2+...]
-    [--encoding=terminal,filesystem] [--verbose]
+    [--passphrase=12345] [--caps=Cap1+Cap2+...] [--vendor="Vendor Name",...]
+    [--autostart] [--encoding=terminal,filesystem] [--verbose]
     <src> [sisfile]
 
 Create a SIS package for a "Python for S60" application.
@@ -68,6 +68,8 @@ Options:
     privkey      - Private key of the certificate (PEM format)
     passphrase   - Pass phrase of the private key (insecure, use stdin instead)
     caps         - Capability names, separated by "+" (none by default)
+    vendor       - Vendor name or a comma separated list of names in all lang.
+    autostart    - Application is registered to start on each device boot
     encoding     - Local character encodings for terminal and filesystem
     verbose      - Print extra statistics
 
@@ -142,11 +144,12 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:n:r:l:i:s:c:t:a:k:p:b:e:vh"
+    short_opts = "u:n:r:l:i:s:c:t:a:k:p:b:d:ge:vh"
     long_opts = [
         "uid=", "appname=", "version=", "lang=", "icon=",
         "shortcaption=", "caption=", "textfile=", "cert=", "privkey=",
-        "passphrase=", "caps=", "encoding=", "verbose", "debug", "help"
+        "passphrase=", "caps=", "vendor=", "autostart", "encoding=",
+        "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
 
@@ -307,6 +310,16 @@ def run(pgmname, argv):
     if len(shortcaption) != numlang or len(caption) != numlang:
         raise ValueError("invalid number of captions")
 
+    # Determine vendor name(s), use "Ensymble" by default.
+    vendor = opts.get("--vendor", opts.get("-d", "Ensymble"))
+    vendor = vendor.decode(terminalenc)
+    vendor = vendor.split(",")
+    if len(vendor) == 1:
+        # Only one vendor name given, use it for all languages.
+        vendor = vendor * numlang
+    elif len(vendor) != numlang:
+        raise ValueError("invalid number of vendor names")
+
     # Load text files.
     texts = []
     textfile = opts.get("--textfile", opts.get("-t", None))
@@ -376,6 +389,11 @@ def run(pgmname, argv):
     capmask = symbianutil.capstringtomask(caps)
     caps = symbianutil.capmasktostring(capmask, True)
 
+    # Determine if the application is requested to start on each device boot.
+    autostart = False
+    if "--autostart" in opts.keys() or "-g" in opts.keys():
+        autostart = True
+
     # Determine verbosity.
     verbose = False
     if "--verbose" in opts.keys() or "-v" in opts.keys():
@@ -410,6 +428,8 @@ def run(pgmname, argv):
     # privkey       Certificate private key in PEM format
     # passphrase    Pass phrase of private key, terminalenc encoded string
     # caps, capmask Capability names and bitmask
+    # vendor        List of Unicode vendor names, one per language
+    # autostart     Boolean requesting application autostart on device boot
     # verbose       Boolean indicating verbose terminal output
 
     if verbose:
@@ -425,9 +445,9 @@ def run(pgmname, argv):
         print "Language(s)       %s"        % ", ".join(lang)
         print "Icon              %s"        % ((icon and
             icon.decode(filesystemenc).encode(terminalenc)) or "<default>")
-        print "Short caption(s)  %s"    % ", ".join(
+        print "Short caption(s)  %s"        % ", ".join(
             [s.encode(terminalenc) for s in shortcaption])
-        print "Long caption(s)   %s"    % ", ".join(
+        print "Long caption(s)   %s"        % ", ".join(
             [s.encode(terminalenc) for s in caption])
         print "Text file(s)      %s"        % ((textfile and
             textfile.decode(filesystemenc).encode(terminalenc)) or "<none>")
@@ -436,11 +456,14 @@ def run(pgmname, argv):
         print "Private key       %s"        % ((privkey and
             privkey.decode(filesystemenc).encode(terminalenc)) or "<default>")
         print "Capabilities      0x%x (%s)" % (capmask, caps)
+        print "Vendor names      %s"        % ", ".join(
+            [s.encode(terminalenc) for s in vendor])
+        print "Autostart         %s"        % ((autostart and "Yes") or "No")
         print
 
     # Generate SimpleSISWriter object.
-    sw = sisfile.SimpleSISWriter(lang, caption, uid3, version, "Ensymble",
-                                 ["Ensymble"] * numlang)
+    sw = sisfile.SimpleSISWriter(lang, caption, uid3, version,
+                                 vendor[0], vendor)
 
     # Add text file or files to the SIS object. Text dialog is
     # supposed to be displayed before anything else is installed.
@@ -462,7 +485,7 @@ def run(pgmname, argv):
     sw.addfile(string, rsctarget)
     del string
 
-    # Generate registration resource file.
+    # Generate application registration resource file.
     regtarget = u"!:\\private\\10003a3f\\import\\apps\\%s_0x%08x_reg.rsc" % (
         appname, uid3)
     exename = u"%s_0x%08x" % (appname, uid3)
@@ -480,6 +503,20 @@ def run(pgmname, argv):
     del rw
     sw.addfile(string, regtarget)
     del string
+
+    # Generate autostart registration resource file, if requested.
+    if autostart:
+        autotarget = u"!:\\private\\101f875a\\import\\[%08x].rsc" % uid3
+        rw = rscfile.RSCWriter(uid2 = 0, offset = "    ")
+        # STRUCT STARTUP_ITEM_INFO from startupitem.rh
+        res = rscfile.Resource(["BYTE", "LTEXT", "WORD",
+                                "LONG", "BYTE", "BYTE"],
+                               0, exetarget, 0, 0, 0, 0)
+        rw.addresource(res)
+        string = rw.tostring()
+        del rw
+        sw.addfile(string, autotarget)
+        del string
 
     # Generate localisable icon/caption definition resource files.
     iconpath = "\\resource\\apps\\%s_0x%08x_aif.mif" % (appname, uid3)
