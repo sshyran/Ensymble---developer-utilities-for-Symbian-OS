@@ -3,7 +3,7 @@
 
 ##############################################################################
 # symbianutil.py - Utilities for working with Symbian OS-related data
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007 Jussi Ylänen, Martin Storsjö
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -24,6 +24,52 @@
 
 import struct
 import zlib
+
+
+##############################################################################
+# Miscellaneous functions
+##############################################################################
+
+def uidstostring(uid1, uid2, uid3):
+    '''Return a string of UIDs and a checksum.'''
+
+    crc = uidcrc(uid1, uid2, uid3)
+    return struct.pack("<LLLL", uid1, uid2, uid3, crc)
+
+def ise32image(string):
+    '''Check if a given string contains a valid E32Image header'''
+
+    if len(string) < 156:
+        # Minimum header size is 156 bytes.
+        return False
+
+    # Get UIDs as integers.
+    uid1, uid2, uid3 = struct.unpack("<LLL", string[:12])
+
+    if uid1 not in (0x1000007AL, 0x10000079L) or string[16:20] != "EPOC":
+        # Wrong UIDs or cookie.
+        return False
+
+    uidstr = uidstostring(uid1, uid2, uid3)
+    if uidstr != string[:16]:
+        # Wrong UID checksum.
+        return False
+
+    return True
+
+def e32imageinfo(image):
+    '''Return a tuple with the UID1, UID2, UID3, secure ID, vendor ID and
+    capabilities (as a string) of the given e32image.'''
+
+    if not ise32image(image):
+        raise ValueError("not a valid e32image header")
+
+    uid1, uid2, uid3 = struct.unpack("<LLL", image[:12])
+    secureid = struct.unpack("<L", image[128:132])[0]
+    vendorid = struct.unpack("<L", image[132:136])[0]
+    capabilities = struct.unpack("<Q", image[136:144])[0]
+
+    return (uid1, uid2, uid3, secureid, vendorid, capabilities)
 
 
 ##############################################################################
@@ -76,38 +122,11 @@ def uidcrc(uid1, uid2, uid3):
     # Resulting 32-bit UID CRC is a combination of the two 16-bit CCITT CRCs.
     return (long(oddcrc) << 16) | evencrc
 
-def uidstostring(uid1, uid2, uid3):
-    '''Return a string of UIDs and a checksum.'''
-
-    crc = uidcrc(uid1, uid2, uid3)
-    return struct.pack("<LLLL", uid1, uid2, uid3, crc)
-
-def ise32image(string):
-    '''Checks if a given string contains a valid E32Image header'''
-
-    if len(string) < 156:
-        # Minimum header size is 156 bytes.
-        return False
-
-    # Get UIDs as integers.
-    uid1, uid2, uid3 = struct.unpack("<LLL", string[:12])
-
-    if uid1 not in (0x1000007AL, 0x10000079L) or string[16:20] != "EPOC":
-        # Wrong UIDs or cookie.
-        return False
-
-    uidstr = uidstostring(uid1, uid2, uid3)
-    if uidstr != string[:16]:
-        # Wrong UID checksum.
-        return False
-
-    return True
-
 def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
                 capabilities = None):
     '''Return a modified e32image (or just the header) with UID checksum
     and header checksum (CCITT CRC-32) recalculated. Optionally modify
-    the UID3, secure ID and vendor ID.'''
+    the UID3, secure ID, vendor ID and capability bit mask.'''
 
     if not ise32image(image):
         raise ValueError("not a valid e32image header")
