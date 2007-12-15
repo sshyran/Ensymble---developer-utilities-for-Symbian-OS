@@ -22,6 +22,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ##############################################################################
 
+import sys
 import os
 import errno
 import tempfile
@@ -274,6 +275,11 @@ def findopenssl():
 
     # Get PATH and split it to a list of paths.
     paths = os.environ["PATH"].split(os.pathsep)
+
+    # Insert script path in front of others.
+    # On Windows, this is where openssl.exe resides by default.
+    if sys.path[0] != "":
+        paths.insert(0, sys.path[0])
 
     for path in paths:
         cmd = os.path.join(path, "openssl")
