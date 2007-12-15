@@ -22,6 +22,7 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 ##############################################################################
 
+import os
 import time
 import struct
 import sha
@@ -630,15 +631,13 @@ class SimpleSISWriter(object):
     def tofile(self, outfile):
         '''Write this SIS instance to a file object or a named file.'''
 
-        try:
-            f = file(outfile, "wb")
-            noclose = False
-        except TypeError:
-            f = outfile
-            noclose = True
+        s = self.tostring()
 
         try:
-            f.write(self.tostring())
-        finally:
-            if not noclose:
+            f = file(outfile, "wb")
+            try:
+                f.write(s)
+            finally:
                 f.close()
+        except TypeError:
+            f.write(s)
