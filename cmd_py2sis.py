@@ -44,11 +44,12 @@ import miffile
 shorthelp = 'Create a SIS package for a "Python for S60" application'
 longhelp  = '''py2sis
     [--uid=0x01234567] [--appname=AppName] [--version=1.0.0]
-    [--lang=EN,...] [--icon=icon.svg]
-    [--shortcaption="App. Name",...] [--caption="Application Name",...]
+    [--lang=EN,...] [--icon=icon.svg] [--shortcaption="App. Name",...]
+    [--caption="Application Name",...] [--drive=C]
     [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
-    [--passphrase=12345] [--caps=Cap1+Cap2+...] [--vendor="Vendor Name",...]
-    [--autostart] [--encoding=terminal,filesystem] [--verbose]
+    [--passphrase=12345] [--caps=Cap1+Cap2+...]
+    [--vendor="Vendor Name",...] [--autostart]
+    [--encoding=terminal,filesystem] [--verbose]
     <src> [sisfile]
 
 Create a SIS package for a "Python for S60" application.
@@ -63,6 +64,7 @@ Options:
     icon         - Icon file in SVG-Tiny format
     shortcaption - Comma separated list of short captions in all languages
     caption      - Comma separated list of long captions in all languages
+    drive        - Drive where the package will be installed (any by default)
     textfile     - Text file (or pattern, see below) to display during install
     cert         - Certificate to use for signing (PEM format)
     privkey      - Private key of the certificate (PEM format)
@@ -144,11 +146,12 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:n:r:l:i:s:c:t:a:k:p:b:d:ge:vh"
+    short_opts = "u:n:r:l:i:s:c:f:t:a:k:p:b:d:ge:vh"
     long_opts = [
         "uid=", "appname=", "version=", "lang=", "icon=",
-        "shortcaption=", "caption=", "textfile=", "cert=", "privkey=",
-        "passphrase=", "caps=", "vendor=", "autostart", "encoding=",
+        "shortcaption=", "caption=", "drive=", "textfile=",
+        "cert=", "privkey=", "passphrase=",
+        "caps=", "vendor=", "autostart", "encoding=",
         "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
@@ -310,6 +313,13 @@ def run(pgmname, argv):
     if len(shortcaption) != numlang or len(caption) != numlang:
         raise ValueError("invalid number of captions")
 
+    # Determine installation drive, any by default.
+    drive = opts.get("--drive", opts.get("-f", "any")).upper()
+    if drive == "ANY" or drive == "!":
+        drive = "!"
+    elif drive != "C" and drive != "E":
+        raise ValueError("%s: invalid drive letter" % drive)
+
     # Determine vendor name(s), use "Ensymble" by default.
     vendor = opts.get("--vendor", opts.get("-d", "Ensymble"))
     vendor = vendor.decode(terminalenc)
@@ -422,6 +432,7 @@ def run(pgmname, argv):
     # icon          Icon data, a binary string typically containing a SVG-T file
     # shortcaption  List of Unicode short captions, one per language
     # caption       List of Unicode long captions, one per language
+    # drive         Installation drive letter or "!"
     # textfile      File name pattern of text file(s) to display during install
     # texts         Actual texts to display during install, one per language
     # cert          Certificate in PEM format
@@ -449,6 +460,8 @@ def run(pgmname, argv):
             [s.encode(terminalenc) for s in shortcaption])
         print "Long caption(s)   %s"        % ", ".join(
             [s.encode(terminalenc) for s in caption])
+        print "Install drive     %s"        % ((drive == "!") and
+            "<any>" or drive)
         print "Text file(s)      %s"        % ((textfile and
             textfile.decode(filesystemenc).encode(terminalenc)) or "<none>")
         print "Certificate       %s"        % ((cert and
@@ -456,7 +469,7 @@ def run(pgmname, argv):
         print "Private key       %s"        % ((privkey and
             privkey.decode(filesystemenc).encode(terminalenc)) or "<default>")
         print "Capabilities      0x%x (%s)" % (capmask, caps)
-        print "Vendor names      %s"        % ", ".join(
+        print "Vendor name(s)    %s"        % ", ".join(
             [s.encode(terminalenc) for s in vendor])
         print "Autostart         %s"        % ((autostart and "Yes") or "No")
         print
@@ -473,21 +486,21 @@ def run(pgmname, argv):
         sw.addlangdepfile(texts, operation = sisfield.EOpText)
 
     # Generate an EXE stub and add it to the SIS object.
-    exetarget = u"!:\\sys\\bin\\%s_0x%08x.exe" % (appname, uid3)
+    exetarget = u"%s:\\sys\\bin\\%s_0x%08x.exe" % (drive, appname, uid3)
     string = execstubdata.decode("base-64")
     string = symbianutil.e32imagecrc(string, uid3, uid3, None, capmask)
     sw.addfile(string, exetarget, None, capabilities = capmask)
     del string
 
     # Generate "Python for S60" resource file.
-    rsctarget = u"!:\\resource\\apps\\%s_0x%08x.rsc" % (appname, uid3)
+    rsctarget = u"%s:\\resource\\apps\\%s_0x%08x.rsc" % (drive, appname, uid3)
     string = zlib.decompress(pythons60rscdata.decode("base-64"))
     sw.addfile(string, rsctarget)
     del string
 
     # Generate application registration resource file.
-    regtarget = u"!:\\private\\10003a3f\\import\\apps\\%s_0x%08x_reg.rsc" % (
-        appname, uid3)
+    regtarget = u"%s:\\private\\10003a3f\\import\\apps\\%s_0x%08x_reg.rsc" % (
+        drive, appname, uid3)
     exename = u"%s_0x%08x" % (appname, uid3)
     locpath = u"\\resource\\apps\\%s_0x%08x_loc" % (appname, uid3)
     rw = rscfile.RSCWriter(uid2 = 0x101f8021, uid3 = uid3)
@@ -506,7 +519,8 @@ def run(pgmname, argv):
 
     # Generate autostart registration resource file, if requested.
     if autostart:
-        autotarget = u"!:\\private\\101f875a\\import\\[%08x].rsc" % uid3
+        autotarget = u"%s:\\private\\101f875a\\import\\[%08x].rsc" % (
+            drive, uid3)
         rw = rscfile.RSCWriter(uid2 = 0, offset = "    ")
         # STRUCT STARTUP_ITEM_INFO from startupitem.rh
         res = rscfile.Resource(["BYTE", "LTEXT", "WORD",
@@ -521,8 +535,8 @@ def run(pgmname, argv):
     # Generate localisable icon/caption definition resource files.
     iconpath = "\\resource\\apps\\%s_0x%08x_aif.mif" % (appname, uid3)
     for n in xrange(numlang):
-        loctarget = u"!:\\resource\\apps\\%s_0x%08x_loc.r%02d" % (
-            appname, uid3, symbianutil.langidtonum[lang[n]])
+        loctarget = u"%s:\\resource\\apps\\%s_0x%08x_loc.r%02d" % (
+            drive, appname, uid3, symbianutil.langidtonum[lang[n]])
         rw = rscfile.RSCWriter(uid2 = 0, offset = "    ")
         # STRUCT LOCALISABLE_APP_INFO from appinfo.rh
         res = rscfile.Resource(["LONG", "LLINK", "LTEXT",
@@ -538,7 +552,8 @@ def run(pgmname, argv):
         del string
 
     # Generate MIF file for icon.
-    icontarget = "!:\\resource\\apps\\%s_0x%08x_aif.mif" % (appname, uid3)
+    icontarget = "%s:\\resource\\apps\\%s_0x%08x_aif.mif" % (
+        drive, appname, uid3)
     mw = miffile.MIFWriter()
     mw.addfile(icondata)
     del icondata
@@ -559,7 +574,7 @@ def run(pgmname, argv):
 
         # Add file to the SIS object. One file only, rename it to default.py.
         target = "default.py"
-        sw.addfile(string, "!:\\private\\%08x\\%s" % (uid3, target))
+        sw.addfile(string, "%s:\\private\\%08x\\%s" % (drive, uid3, target))
         del string
     else:
         # More than one file, use original path names.
@@ -574,7 +589,7 @@ def run(pgmname, argv):
 
             # Add file to the SIS object.
             target = srcfile.decode(filesystemenc).replace(os.sep, "\\")
-            sw.addfile(string, "!:\\private\\%08x\\%s" % (uid3, target))
+            sw.addfile(string, "%s:\\private\\%08x\\%s" % (drive, uid3, target))
             del string
 
     # Add target device dependency.
