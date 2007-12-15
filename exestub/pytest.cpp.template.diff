@@ -1,0 +1,27 @@
+--- PyTest.cpp.template	2007-12-14 19:01:50.000000000 +0200
++++ PyTest.cpp	2007-12-14 19:03:34.000000000 +0200
+@@ -24,10 +24,11 @@
+ #include "PyTest_app.h"
+ #include <Python.rsg>
+ #include <eikstart.h>
++#include <python\python.h>
+ 
+ IMPORT_C CEikAppUi* CreateAmarettoAppUi(TInt);
+ 
+-const TUid KUidPythonApp = {${{PY2SIS_UID}}};
++static TUid KUidPythonApp = KNullUid;   // Real UID is set in E32Main().
+ 
+ CPythonDocument::CPythonDocument(CEikApplication& aApp) : CAknDocument(aApp)
+ {
+@@ -57,6 +58,9 @@
+ }
+ 
+ GLDEF_C TInt E32Main()
+-        {
++{
++  // Set application UID from Process' Secure ID.
++  KUidPythonApp.iUid = RProcess().SecureId();
++
+         return EikStart::RunApplication(NewApplication);
+-        }
++}
