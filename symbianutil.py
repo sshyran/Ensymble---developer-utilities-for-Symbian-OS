@@ -322,9 +322,15 @@ def capstringtomask(string):
         # Empty string denotes no capabilities.
         return 0L
 
-    # "Some people, when confronted with a problem, think "I know,
-    # I'll use regular expressions." Now they have two problems."
-    # -Jamie Zawinski, in comp.lang.emacs
+    try:
+        # Allow numerical representation for capabilities.
+        capmask = int(string, 0)
+        if capmask < 0:
+            raise ValueError
+        return capmask
+    except ValueError:
+        # Capabilities not in numerical form, continue with parsing.
+        pass
 
     # Erase an optional initial "+" character.
     if string[0] == '+':
