@@ -4,8 +4,6 @@ Dev-cert-request command. Needs IMEI and capabilities as extra data.
 
 Move imports inside run() of each command to speed up program startup.
 
-Include py2sis EXE stub sources.
-
 sisfield.py: Better memory efficiency
 
 sisfield.py: Cached tostring()

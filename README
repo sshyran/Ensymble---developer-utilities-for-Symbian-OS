@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                     Copyright 2006, 2007 Jussi Ylänen
 
-                         Last updated 2007-10-18
+                         Last updated 2007-12-15
 
 
 ABOUT
@@ -72,21 +72,53 @@ and (re-)signing. Any recent version will do, and can usually be found
 pre-installed. For Windows, the Stunnel OpenSSL binaries [9] are
 recommended, but any other binaries will do as well.
 
-For convenience, a regular Ensymble installation packs everything
-together in one file using the nifty squeeze utility [10] by Fredrik
-Lundh. Pre-squeezed files for various Python versions may be downloaded
-from the Ensymble home page. These files are ready to use, no unpacking
-is necessary.
+The Ensymble command line tool is normally installed as a single file
+"ensymble.py". This file contains everything except the OpenSSL command
+line tool and is created using Fredrik Lundh's nifty squeeze utility
+[10]. Pre-squeezed files for various Python versions may be downloaded
+from the Ensymble home page. To find out which version to download, type
+"python -V" on the command line:
 
-For Unix-like systems, there is a simple installation script which
-squeezes all the required files together and copies the resulting
-package to the user's bin-directory. The directory must exist already:
+    $ python -V
+    Python 2.4.4
+
+or
+
+    C:\> python -V
+    Python 2.4.4
+
+A pre-squeezed version for Python 2.4 would be the correct one in this
+case.
+
+Users on Unix-like systems (Linux, *BSD, Apple OS X) can download the
+correct pre-squeezed version and put in in the "bin" directory under the
+user's home directory (if such a thing exists), and possibly rename the
+file to "ensymble.py" as well.
+
+Windows users need to download "openssl.zip" (NOT "stunnel-n.nn.exe" or
+"stunnel-n.nn-installer.exe") [9] and unpack it somewhere, for example
+"C:\Ensymble", and then put the correct pre-squeezed version of Ensymble
+there as well, renamed to "ensymble.py":
+
+    C:\Ensymble\      [directory]
+        ensymble.py   [76046 bytes]
+        openssl.exe   [1153024 bytes]
+        libssl32.dll  [632226 bytes]
+        libeay32.dll  [1578787 bytes]
+
+To allow using the Ensymble command line tool without explicitly giving
+a full command path each time, it is advisable to add the installation
+directory ("C:\Ensymble" in the example above) in the Path environment
+variable in Windows' environment variables dialog (My Computer ->
+Properties -> Advanced -> Environment Variables -> System Variables ->
+Path). The Command Prompt window must be restarted after the change.
+
+Installation is also possible from the original source package. For
+Unix-like systems, there is a simple installation script which squeezes
+all the required files together and copies the resulting package to a
+given directory (which must exist already):
 
     $ ./install.sh ~/bin
-
-If the installation goes through without errors, the Ensymble command
-line tool "ensymble.py" is now ready for use, provided that the user's
-bin-directory can be found in command search path.
 
 
 USAGE
@@ -106,9 +138,11 @@ list all the available commands.
 The following commands are currently supported by Ensymble:
 
     altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+    infoe32    Show the IDs and capabilities of e32image files (EXEs, DLLs)
     mergesis   Merge several SIS packages into one
     py2sis     Create a SIS package for a "Python for S60" application
     signsis    Sign a SIS package
+    simplesis  Create a SIS package from a directory structure
     version    Print Ensymble version
 
 Each command is documented in detail below.
@@ -244,8 +278,13 @@ option is not given, the vendor ID is not changed.
     --caps=Cap1+Cap2+...
     -b Cap1+Cap2+...
 
-Capability names, separated by "+". If no capability option is given,
-capabilities are not changed.
+or
+
+    --caps=0x12345
+    -b 0x12345
+
+Capability names separated by "+" or a numeric capability bitmask. If no
+capability option is given, capabilities are not changed.
 
 
 EXAMPLES
@@ -264,11 +303,11 @@ This will modify "myextension_orig.pyd" (a "Python for S60" extension
 DLL) with the capabilities listed, and generate file "myextension.pyd"
 with the new capabilities.
 
-    $ ensymble.py altere32 --caps=<whatever> --inplace *.dll
+    $ ensymble.py altere32 --caps=0xff1b4 --inplace *.dll
 
-This modifies every DLL file in the current directory using the given
-capabilities. Original files will be modified, so use the "--inplace"
-option with caution!
+This modifies every DLL file in the current directory using the same
+capabilities as above but in a numeric form. Original files will be
+modified, so use the "--inplace" option with caution!
 
 Note: When modifying the UID, the secure ID should be modified
 accordingly. Modifying UIDs of application EXEs is generally not
@@ -303,7 +342,7 @@ One or more e32image files to inspect.
 
 EXAMPLES
 
-    $ ensymble.py infoe32 myprogram.pyd somelibrary.dll
+    $ ensymble.py infoe32 myprogram.exe somelibrary.dll
     myprogram.exe:
         UID1          0x1000007a
         UID2          0x100039ce
@@ -360,17 +399,20 @@ Path of the resulting SIS file. If a directory name is given, base SIS
 file name is used as the output file name.
 
     --cert=mycert.cer
+    -a mycert.cer
 
 Certificate to use for signing in PEM (text) format. If no certificate
 and its private key are given, Ensymble uses a default self-signed
 certificate (see option "--cert" for command "py2sis" above).
 
     --privkey=mykey.key
+    -k mykey.key
 
 Private key of the certificate in PEM (text) format. If option "--cert"
 (above) is given, this option is required as well.
 
     --passphrase=12345
+    -p 12345
 
 Pass phrase of the private key.
 
@@ -415,11 +457,12 @@ SYNOPSIS
 
     $ ensymble.py py2sis
         [--uid=0x01234567] [--appname=AppName] [--version=1.0.0]
-        [--lang=EN,...] [--icon=icon.svg]
-        [--shortcaption="App. Name",...] [--caption="Application Name",...]
+        [--lang=EN,...] [--icon=icon.svg] [--shortcaption="App. Name",...]
+        [--caption="Application Name",...] [--drive=C]
         [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
-        [--passphrase=12345] [--caps=Cap1+Cap2+...] [--vendor="Vendor Name",...]
-        [--autostart] [--encoding=terminal,filesystem] [--verbose]
+        [--passphrase=12345] [--caps=Cap1+Cap2+...]
+        [--vendor="Vendor Name",...] [--autostart]
+        [--encoding=terminal,filesystem] [--verbose]
         <src> [sisfile]
 
 
@@ -548,6 +591,13 @@ application is launched and beside the icon in list layout. Long caption
 is also used as the package name, which is displayed during application
 installation.
 
+    --drive=C
+    -f C
+
+Installation drive "C" or "E" or "any", to select where the SIS is to be
+installed. Default is "any", which causes the phone to ask the user
+where to install the package.
+
     --textfile=mytext_%C.txt
     -t mytext_%C.txt
 
@@ -607,9 +657,15 @@ will be asked interactively.
     --caps=Cap1+Cap2+...
     -b Cap1+Cap2+...
 
-Capability names, separated by "+". If no capability option is given,
-the application will not have any special capabilities. Symbian Signed
-[12] has an FAQ which explains all the available capabilities.
+or
+
+    --caps=0x12345
+    -b 0x12345
+
+Capability names separated by "+" or a numeric capability bitmask. If no
+capability option is given, the application will not have any special
+capabilities. Symbian Signed [12] has an FAQ which explains all the
+available capabilities.
 
     --vendor=Name,...
     -d Name,...
@@ -631,7 +687,7 @@ Flag to control automatic startup of the application. On S60 3rd Edition
 phones, an application can register itself to be automatically started
 when the phone is turned on.
 
-Note: Self-signed applications and applications with UID in the 
+Note: Self-signed applications and applications with UID in the
 unprotected range cannot register to be automatically started.
 
 
@@ -701,17 +757,20 @@ name is used as the output file name.
 Note: If no output file name is given, original SIS file is overwritten!
 
     --cert=mycert.cer
+    -a mycert.cer
 
 Certificate to use for signing in PEM (text) format. If no certificate
 and its private key are given, Ensymble uses a default self-signed
 certificate (see option "--cert" for command "py2sis" above).
 
     --privkey=mykey.key
+    -k mykey.key
 
 Private key of the certificate in PEM (text) format. If option "--cert"
 (above) is given, this option is required as well.
 
     --passphrase=12345
+    -p 12345
 
 Pass phrase of the private key.
 
@@ -724,17 +783,29 @@ If no pass phrase is given on the command line or standard input, it
 will be asked interactively.
 
     --execaps=Cap1+Cap2+...
+    -b Cap1+Cap2+...
 
-Capability names, separated by "+". EXEs inside the SIS file will be
-modified according to these capabilities. If no capability option is
-given, no EXEs will be modified. Symbian Signed [12] has an FAQ which
-explains all the available capabilities.
+or
+
+    --execaps=0x12345
+    -b 0x12345
+
+Capability names separated by "+" or a numeric capability bitmask. EXEs
+inside the SIS file will be modified according to these capabilities. If
+no capability option is given, no EXEs will be modified. Symbian Signed
+[12] has an FAQ which explains all the available capabilities.
 
     --dllcaps=Cap1+Cap2+...
+    -d Cap1+Cap2+...
 
-Capability names, separated by "+". DLLs inside the SIS file will be
-modified according to these capabilities. If no capability option is
-given, no DLLs will be modified.
+or
+
+    --dllcaps=0x12345
+    -d 0x12345
+
+Capability names separated by "+" or a numeric capability bitmask. DLLs
+inside the SIS file will be modified according to these capabilities. If
+no capability option is given, no DLLs will be modified.
 
 
 EXAMPLES
@@ -755,7 +826,7 @@ capabilities listed. A new SIS file "coolextension_mycert.sis" will be
 created and signed with "mycert.cer" using private key "mykey.key".
 
     $ echo "12345" | ensymble.py signsis
-        --dllcaps=<whatever> --cert=mycert.cer --key=mykey.key
+        --dllcaps=0xff1b4 --cert=mycert.cer --key=mykey.key
         coolextension_nocert.sis coolextension_mycert.sis
 
 Pass phrase can be given in Ensymble standard input, so that it will not
@@ -770,9 +841,10 @@ SYNOPSIS
 
     $ ensymble.py simplesis
         [--uid=0x01234567] [--version=1.0.0] [--lang=EN,...]
-        [--caption="Package Name",...] [--textfile=mytext_%C.txt]
+        [--caption="Package Name",...] [--drive=C] [--textfile=mytext_%C.txt]
         [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
-        [--encoding=terminal,filesystem] [--verbose]
+        [--vendor="Vendor Name",...] [--encoding=terminal,filesystem]
+        [--verbose]
         <srcdir> [sisfile]
 
 
@@ -789,10 +861,8 @@ PARAMETERS
     srcdir
 
 The source directory name. The directory structure is preserved under
-the installation drive, chosen by the user installing the SIS file.
-
-To clarify: files and directories under "srcdir" will be located on the
-root of the installation drive.
+the installation drive, i.e files and directories under "srcdir" will be
+located on the root of the installation drive.
 
     sisfile
 
@@ -844,6 +914,13 @@ listed with the "--lang" option. If no captions are given, source
 directory name is used (see parameter "srcdir" above).
 
 Package caption is displayed during application installation.
+
+    --drive=C
+    -f C
+
+Installation drive "C" or "E" or "any", to select where the SIS is to be
+installed. Default is "any", which causes the phone to ask the user
+where to install the package.
 
     --textfile=mytext_%C.txt
     -t mytext_%C.txt
@@ -900,13 +977,6 @@ standard input should be used (see examples below).
 
 If no pass phrase is given on the command line or standard input, it
 will be asked interactively.
-
-    --caps=Cap1+Cap2+...
-    -b Cap1+Cap2+...
-
-Capability names, separated by "+". If no capability option is given,
-the application will not have any special capabilities. Symbian Signed
-[12] has an FAQ which explains all the available capabilities.
 
 
 EXAMPLES
@@ -970,13 +1040,22 @@ No parameters
 EXAMPLES
 
     $ ensymble.py version
-    Ensymble v0.24 2007-10-18
+    Ensymble v0.25 2007-12-15
 
 The version string is printed.
 
 
 PROJECT HISTORY
 ===============
+
+2007-12-15
+Released Ensymble version v0.25 2007-12-15
+Added --drive option to py2sis and simplesis commands, for installation drive.
+Added --vendor option for the simplesis command, as well.
+The OpenSSL command line tool can reside in the same directory as Ensymble now.
+Prevent leaving zero-byte output files behind when no OpenSSL tool is found.
+Made it possible to use numeric capability bitmasks.
+Rewrote installation instructions to better take Windows users into account.
 
 2007-10-18
 Released Ensymble version v0.24 2007-10-18
