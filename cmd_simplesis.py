@@ -45,9 +45,10 @@ import miffile
 shorthelp = 'Create a SIS package from a directory structure'
 longhelp  = '''simplesis
     [--uid=0x01234567] [--version=1.0.0] [--lang=EN,...]
-    [--caption="Package Name",...] [--textfile=mytext_%C.txt]
+    [--caption="Package Name",...] [--drive=C] [--textfile=mytext_%C.txt]
     [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
-    [--encoding=terminal,filesystem] [--verbose]
+    [--vendor="Vendor Name",...] [--encoding=terminal,filesystem]
+    [--verbose]
     <srcdir> [sisfile]
 
 Create a SIS package from a directory structure. Only supports very
@@ -61,10 +62,12 @@ Options:
     version      - SIS package version: X.Y.Z or X,Y,Z (major, minor, build)
     lang         - Comma separated list of two-character language codes
     caption      - Comma separated list of package names in all languages
+    drive        - Drive where the package will be installed (any by default)
     textfile     - Text file (or pattern, see below) to display during install
     cert         - Certificate to use for signing (PEM format)
     privkey      - Private key of the certificate (PEM format)
     passphrase   - Pass phrase of the private key (insecure, use stdin instead)
+    vendor       - Vendor name or a comma separated list of names in all lang.
     encoding     - Local character encodings for terminal and filesystem
     verbose      - Print extra statistics
 
@@ -135,10 +138,10 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:r:l:c:t:a:k:p:e:vh"
+    short_opts = "u:r:l:c:f:t:a:k:p:d:e:vh"
     long_opts = [
         "uid=", "version=", "lang=", "caption=",
-        "textfile=", "cert=", "privkey=", "passphrase=",
+        "drive=", "textfile=", "cert=", "privkey=", "passphrase=", "vendor=",
         "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
@@ -256,6 +259,23 @@ def run(pgmname, argv):
     if len(caption) != numlang:
         raise ValueError("invalid number of captions")
 
+    # Determine installation drive, any by default.
+    drive = opts.get("--drive", opts.get("-f", "any")).upper()
+    if drive == "ANY" or drive == "!":
+        drive = "!"
+    elif drive != "C" and drive != "E":
+        raise ValueError("%s: invalid drive letter" % drive)
+
+    # Determine vendor name(s), use "Ensymble" by default.
+    vendor = opts.get("--vendor", opts.get("-d", "Ensymble"))
+    vendor = vendor.decode(terminalenc)
+    vendor = vendor.split(",")
+    if len(vendor) == 1:
+        # Only one vendor name given, use it for all languages.
+        vendor = vendor * numlang
+    elif len(vendor) != numlang:
+        raise ValueError("invalid number of vendor names")
+
     # Load text files.
     texts = []
     textfile = opts.get("--textfile", opts.get("-t", None))
@@ -320,11 +340,6 @@ def run(pgmname, argv):
 
             passphrase = passphrase.strip()
 
-    # Get capabilities and normalize the names.
-    caps = opts.get("--caps", opts.get("-b", ""))
-    capmask = symbianutil.capstringtomask(caps)
-    caps = symbianutil.capmasktostring(capmask, True)
-
     # Determine verbosity.
     verbose = False
     if "--verbose" in opts.keys() or "-v" in opts.keys():
@@ -350,11 +365,13 @@ def run(pgmname, argv):
     # version       A triple-item tuple (major, minor, build)
     # lang          List of two-character language codes, ASCII strings
     # caption       List of Unicode package captions, one per language
+    # drive         Installation drive letter or "!"
     # textfile      File name pattern of text file(s) to display during install
     # texts         Actual texts to display during install, one per language
     # cert          Certificate in PEM format
     # privkey       Certificate private key in PEM format
     # passphrase    Pass phrase of private key, terminalenc encoded string
+    # vendor        List of Unicode vendor names, one per language
     # verbose       Boolean indicating verbose terminal output
 
     if verbose:
@@ -369,17 +386,21 @@ def run(pgmname, argv):
         print "Language(s)         %s"          % ", ".join(lang)
         print "Package caption(s)  %s"          % ", ".join(
             [s.encode(terminalenc) for s in caption])
+        print "Install drive       %s"        % ((drive == "!") and
+            "<any>" or drive)
         print "Text file(s)        %s"          % ((textfile and
             textfile.decode(filesystemenc).encode(terminalenc)) or "<none>")
         print "Certificate         %s"          % ((cert and
             cert.decode(filesystemenc).encode(terminalenc)) or "<default>")
         print "Private key         %s"          % ((privkey and
             privkey.decode(filesystemenc).encode(terminalenc)) or "<default>")
+        print "Vendor name(s)      %s"          % ", ".join(
+            [s.encode(terminalenc) for s in vendor])
         print
 
     # Generate SimpleSISWriter object.
-    sw = sisfile.SimpleSISWriter(lang, caption, puid, version, "Ensymble",
-                                 ["Ensymble"] * numlang)
+    sw = sisfile.SimpleSISWriter(lang, caption, puid, version,
+                                 vendor[0], vendor)
 
     # Add text file or files to the SIS object. Text dialog is
     # supposed to be displayed before anything else is installed.
@@ -408,7 +429,7 @@ def run(pgmname, argv):
 
         # Add file to the SIS object.
         target = srcfile.decode(filesystemenc).replace(os.sep, "\\")
-        sw.addfile(string, "!:\\%s" % target, capabilities = caps)
+        sw.addfile(string, "%s:\\%s" % (drive, target), capabilities = caps)
         del string
 
     # Add target device dependency.
