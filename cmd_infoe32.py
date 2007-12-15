@@ -38,7 +38,7 @@ import symbianutil
 shorthelp = 'Show the IDs and capabilities of e32image files (EXEs, DLLs)'
 longhelp  = '''infoe32
     [--encoding=terminal,filesystem] [--verbose]
-    <infile>
+    <infile>...
 
 Show the IDs and capabilities of e32image files (Symbian OS EXEs and DLLs).
 
