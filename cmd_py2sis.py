@@ -48,7 +48,7 @@ longhelp  = '''py2sis
     [--caption="Application Name",...] [--drive=C]
     [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
     [--passphrase=12345] [--caps=Cap1+Cap2+...]
-    [--vendor="Vendor Name",...] [--autostart]
+    [--vendor="Vendor Name",...] [--autostart] [--runinstall]
     [--encoding=terminal,filesystem] [--verbose]
     <src> [sisfile]
 
@@ -72,6 +72,7 @@ Options:
     caps         - Capability names, separated by "+" (none by default)
     vendor       - Vendor name or a comma separated list of names in all lang.
     autostart    - Application is registered to start on each device boot
+    runinstall   - Application is automatically started after installation
     encoding     - Local character encodings for terminal and filesystem
     verbose      - Print extra statistics
 
@@ -146,13 +147,13 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:n:r:l:i:s:c:f:t:a:k:p:b:d:ge:vh"
+    short_opts = "u:n:r:l:i:s:c:f:t:a:k:p:b:d:gRe:vh"
     long_opts = [
         "uid=", "appname=", "version=", "lang=", "icon=",
         "shortcaption=", "caption=", "drive=", "textfile=",
         "cert=", "privkey=", "passphrase=",
-        "caps=", "vendor=", "autostart", "encoding=",
-        "verbose", "debug", "help"
+        "caps=", "vendor=", "autostart", "runinstall",
+        "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
 
@@ -404,6 +405,10 @@ def run(pgmname, argv):
     if "--autostart" in opts.keys() or "-g" in opts.keys():
         autostart = True
 
+    runinstall = False
+    if "--runinstall" in opts.keys() or "-R" in opts.keys():
+        runinstall = True
+
     # Determine verbosity.
     verbose = False
     if "--verbose" in opts.keys() or "-v" in opts.keys():
@@ -441,37 +446,39 @@ def run(pgmname, argv):
     # caps, capmask Capability names and bitmask
     # vendor        List of Unicode vendor names, one per language
     # autostart     Boolean requesting application autostart on device boot
+    # runinstall    Boolean requesting application autorun after installation
     # verbose       Boolean indicating verbose terminal output
 
     if verbose:
         print
-        print "Input file(s)     %s"        % " ".join(
+        print "Input file(s)       %s"      % " ".join(
             [s.decode(filesystemenc).encode(terminalenc) for s in srcfiles])
-        print "Output SIS file   %s"        % (
+        print "Output SIS file     %s"      % (
             outfile.decode(filesystemenc).encode(terminalenc))
-        print "UID               0x%08x"    % uid3
-        print "Application name  %s"        % appname.encode(terminalenc)
-        print "Version           %d.%d.%d"  % (
+        print "UID                 0x%08x"  % uid3
+        print "Application name    %s"      % appname.encode(terminalenc)
+        print "Version             %d.%d.%d"    % (
             version[0], version[1], version[2])
-        print "Language(s)       %s"        % ", ".join(lang)
-        print "Icon              %s"        % ((icon and
+        print "Language(s)         %s"      % ", ".join(lang)
+        print "Icon                %s"      % ((icon and
             icon.decode(filesystemenc).encode(terminalenc)) or "<default>")
-        print "Short caption(s)  %s"        % ", ".join(
+        print "Short caption(s)    %s"      % ", ".join(
             [s.encode(terminalenc) for s in shortcaption])
-        print "Long caption(s)   %s"        % ", ".join(
+        print "Long caption(s)     %s"      % ", ".join(
             [s.encode(terminalenc) for s in caption])
-        print "Install drive     %s"        % ((drive == "!") and
+        print "Install drive       %s"      % ((drive == "!") and
             "<any>" or drive)
-        print "Text file(s)      %s"        % ((textfile and
+        print "Text file(s)        %s"      % ((textfile and
             textfile.decode(filesystemenc).encode(terminalenc)) or "<none>")
-        print "Certificate       %s"        % ((cert and
+        print "Certificate         %s"      % ((cert and
             cert.decode(filesystemenc).encode(terminalenc)) or "<default>")
-        print "Private key       %s"        % ((privkey and
+        print "Private key         %s"      % ((privkey and
             privkey.decode(filesystemenc).encode(terminalenc)) or "<default>")
-        print "Capabilities      0x%x (%s)" % (capmask, caps)
-        print "Vendor name(s)    %s"        % ", ".join(
+        print "Capabilities        0x%x (%s)" % (capmask, caps)
+        print "Vendor name(s)      %s"      % ", ".join(
             [s.encode(terminalenc) for s in vendor])
-        print "Autostart         %s"        % ((autostart and "Yes") or "No")
+        print "Autostart on boot   %s"      % ((autostart and "Yes") or "No")
+        print "Run after install   %s"      % ((runinstall and "Yes") or "No")
         print
 
     # Generate SimpleSISWriter object.
@@ -484,13 +491,6 @@ def run(pgmname, argv):
         sw.addfile(texts[0], operation = sisfield.EOpText)
     elif len(texts) > 1:
         sw.addlangdepfile(texts, operation = sisfield.EOpText)
-
-    # Generate an EXE stub and add it to the SIS object.
-    exetarget = u"%s:\\sys\\bin\\%s_0x%08x.exe" % (drive, appname, uid3)
-    string = execstubdata.decode("base-64")
-    string = symbianutil.e32imagecrc(string, uid3, uid3, None, capmask)
-    sw.addfile(string, exetarget, None, capabilities = capmask)
-    del string
 
     # Generate "Python for S60" resource file.
     rsctarget = u"%s:\\resource\\apps\\%s_0x%08x.rsc" % (drive, appname, uid3)
@@ -516,6 +516,9 @@ def run(pgmname, argv):
     del rw
     sw.addfile(string, regtarget)
     del string
+
+    # EXE target name
+    exetarget = u"%s:\\sys\\bin\\%s_0x%08x.exe" % (drive, appname, uid3)
 
     # Generate autostart registration resource file, if requested.
     if autostart:
@@ -604,6 +607,19 @@ def run(pgmname, argv):
 
     # Add certificate.
     sw.addcertificate(privkeydata, certdata, passphrase)
+
+    # Generate an EXE stub and add it to the SIS object.
+    string = execstubdata.decode("base-64")
+    string = symbianutil.e32imagecrc(string, uid3, uid3, None, capmask)
+    if runinstall:
+        # To avoid running without dependencies, this has to be in the end.
+        sw.addfile(string, exetarget, None, capabilities = capmask,
+                   operation = sisfield.EOpRun,
+                   options = sisfield.EInstFileRunOptionInstall)
+    else:
+        sw.addfile(string, exetarget, None, capabilities = capmask)
+
+    del string
 
     # Generate SIS file out of the SimpleSISWriter object.
     sw.tofile(outfile)
