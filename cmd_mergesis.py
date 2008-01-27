@@ -235,14 +235,19 @@ def run(pgmname, argv):
         f.close()
 
         if len(instring) > MAXSISFILESIZE:
-            raise ValueError("%s: input SIS file too large" % infile)
+            raise ValueError("%s: input SIS file too large" % infiles[n])
 
         if n == 0:
             # Store UIDs for later use.
             uids = instring[:16]    # UID1, UID2, UID3 and UIDCRC
 
         # Convert input SIS file to SISFields.
-        sf = sisfield.SISField(instring[16:])
+        sf, rlen = sisfield.SISField(instring[16:], False)
+
+        # Ignore extra bytes after SIS file.
+        if len(instring) > (rlen + 16):
+            print ("%s: %s: warning: %d extra bytes after SIS file (ignored)" %
+                   (pgmname, infiles[n], (len(instring) - (rlen + 16))))
 
         # Try to release some memory early.
         del instring
@@ -250,7 +255,7 @@ def run(pgmname, argv):
         # Check that there are no embedded SIS files.
         if len(sf.Data.DataUnits) > 1:
             raise ValueError("%s: input SIS file contains "
-                             "embedded SIS files" % infile)
+                             "embedded SIS files" % infiles[n])
 
         insis.append(sf)
 
@@ -272,7 +277,7 @@ def run(pgmname, argv):
         # Set data index in SISController SISField.
         insis[n].Controller.Data.DataIndex.DataIndex = n
 
-        # TODO: Embed SISController into SISInstallBlock of the first SIS file.
+        # Embed SISController into SISInstallBlock of the first SIS file.
         ctrlfield.InstallBlock.EmbeddedSISFiles.append(insis[n].Controller.Data)
 
     # Calculate a signature of the modified SISController.
