@@ -280,7 +280,12 @@ def run(pgmname, argv):
 
     # Convert input SIS file to SISFields.
     uids = instring[:16]    # UID1, UID2, UID3 and UIDCRC
-    insis = sisfield.SISField(instring[16:])
+    insis, rlen = sisfield.SISField(instring[16:], False)
+
+    # Ignore extra bytes after SIS file.
+    if len(instring) > (rlen + 16):
+        print ("%s: warning: %d extra bytes after input SIS file (ignored)" %
+               (pgmname, (len(instring) - (rlen + 16))))
 
     # Try to release some memory early.
     del instring
