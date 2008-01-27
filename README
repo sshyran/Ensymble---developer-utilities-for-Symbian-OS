@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
-                    Copyright 2006, 2007 Jussi Ylänen
+                 Copyright 2006, 2007, 2008 Jussi Ylänen
 
-                         Last updated 2007-12-15
+                         Last updated 2008-01-27
 
 
 ABOUT
@@ -687,8 +687,18 @@ Flag to control automatic startup of the application. On S60 3rd Edition
 phones, an application can register itself to be automatically started
 when the phone is turned on.
 
-Note: Self-signed applications and applications with UID in the
-unprotected range cannot register to be automatically started.
+Note: Self-signed applications and applications with UID in the 
+unprotected range cannot register to be automatically started (see 
+options "--uid" and "--cert" above).
+
+    --runinstall
+    -R
+
+Run the application after installation. After copying all files to the 
+phone, the application is automatically started.
+
+Note: Phones will ignore this flag in SIS files using self-signed 
+certificates (see option "--cert" above).
 
 
 EXAMPLES
@@ -1040,13 +1050,18 @@ No parameters
 EXAMPLES
 
     $ ensymble.py version
-    Ensymble v0.25 2007-12-15
+    Ensymble v0.26 2008-01-27
 
 The version string is printed.
 
 
 PROJECT HISTORY
 ===============
+
+2008-01-27
+Released Ensymble version v0.26 2008-01-27
+Incorporated a --runinstall option for the py2sis command, by Jari Kirma.
+Commands mergesis and signsis no longer choke on extra bytes in input SIS files.
 
 2007-12-15
 Released Ensymble version v0.25 2007-12-15
