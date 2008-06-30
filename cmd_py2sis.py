@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_py2sis.py - Ensymble command line tool, py2sis command
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -45,9 +45,9 @@ shorthelp = 'Create a SIS package for a "Python for S60" application'
 longhelp  = '''py2sis
     [--uid=0x01234567] [--appname=AppName] [--version=1.0.0]
     [--lang=EN,...] [--icon=icon.svg] [--shortcaption="App. Name",...]
-    [--caption="Application Name",...] [--drive=C]
+    [--caption="Application Name",...] [--drive=C] [extrasdir=root]
     [--textfile=mytext_%C.txt] [--cert=mycert.cer] [--privkey=mykey.key]
-    [--passphrase=12345] [--caps=Cap1+Cap2+...]
+    [--passphrase=12345] [--heapsize=min,max] [--caps=Cap1+Cap2+...]
     [--vendor="Vendor Name",...] [--autostart] [--runinstall]
     [--encoding=terminal,filesystem] [--verbose]
     <src> [sisfile]
@@ -65,6 +65,7 @@ Options:
     shortcaption - Comma separated list of short captions in all languages
     caption      - Comma separated list of long captions in all languages
     drive        - Drive where the package will be installed (any by default)
+    extrasdir    - Name of dir. tree placed under drive root (none by default)
     textfile     - Text file (or pattern, see below) to display during install
     cert         - Certificate to use for signing (PEM format)
     privkey      - Private key of the certificate (PEM format)
@@ -73,6 +74,7 @@ Options:
     vendor       - Vendor name or a comma separated list of names in all lang.
     autostart    - Application is registered to start on each device boot
     runinstall   - Application is automatically started after installation
+    heapsize     - Application heap size, min. and/or max. ("4k,1M" by default)
     encoding     - Local character encodings for terminal and filesystem
     verbose      - Print extra statistics
 
@@ -147,12 +149,12 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:n:r:l:i:s:c:f:t:a:k:p:b:d:gRe:vh"
+    short_opts = "u:n:r:l:i:s:c:f:x:t:a:k:p:b:d:gRH:e:vh"
     long_opts = [
         "uid=", "appname=", "version=", "lang=", "icon=",
-        "shortcaption=", "caption=", "drive=", "textfile=",
-        "cert=", "privkey=", "passphrase=",
-        "caps=", "vendor=", "autostart", "runinstall",
+        "shortcaption=", "caption=", "drive=", "extrasdir=", "textfile=",
+        "cert=", "privkey=", "passphrase=", "caps=", "vendor=",
+        "autostart", "runinstall", "heapsize=",
         "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
@@ -331,6 +333,16 @@ def run(pgmname, argv):
     elif len(vendor) != numlang:
         raise ValueError("invalid number of vendor names")
 
+    extrasdir = opts.get("--extrasdir", opts.get("-x", None))
+    if extrasdir != None:
+        extrasdir = extrasdir.decode(terminalenc).encode(filesystemenc)
+        if extrasdir[-1] == os.sep:
+            # Strip trailing slash (or backslash).
+            extrasdir = extrasdir[:-1]
+
+        if os.sep in extrasdir:
+            raise ValueError("%s: too many path components" % extrasdir)
+
     # Load text files.
     texts = []
     textfile = opts.get("--textfile", opts.get("-t", None))
@@ -409,6 +421,25 @@ def run(pgmname, argv):
     if "--runinstall" in opts.keys() or "-R" in opts.keys():
         runinstall = True
 
+    # Get heap sizes.
+    heapsize = opts.get("--heapsize", opts.get("-H", "4k,1M")).split(",", 1)
+    try:
+        heapsizemin = symbianutil.parseintmagnitude(heapsize[0])
+        if len(heapsize) == 1:
+            # Only one size given, use it as both.
+            heapsizemax = heapsizemin
+        else:
+            heapsizemax = symbianutil.parseintmagnitude(heapsize[1])
+    except (ValueError, TypeError, IndexError):
+        raise ValueError("%s: invalid heap size, one or two values expected" %
+                         ",".join(heapsize))
+
+    # Warn if the minimum heap size is larger than the maximum heap size.
+    # Resulting SIS file will probably not install.
+    if heapsizemin > heapsizemax:
+        print ("%s: warning: minimum heap size larger than "
+               "maximum heap size" % pgmname)
+
     # Determine verbosity.
     verbose = False
     if "--verbose" in opts.keys() or "-v" in opts.keys():
@@ -438,6 +469,7 @@ def run(pgmname, argv):
     # shortcaption  List of Unicode short captions, one per language
     # caption       List of Unicode long captions, one per language
     # drive         Installation drive letter or "!"
+    # extrasdir     Path prefix for extra files, filesystemenc encoded or None
     # textfile      File name pattern of text file(s) to display during install
     # texts         Actual texts to display during install, one per language
     # cert          Certificate in PEM format
@@ -447,6 +479,8 @@ def run(pgmname, argv):
     # vendor        List of Unicode vendor names, one per language
     # autostart     Boolean requesting application autostart on device boot
     # runinstall    Boolean requesting application autorun after installation
+    # heapsizemin   Heap that must be available for the application to start
+    # heapsizemax   Maximum amount of heap the application can allocate
     # verbose       Boolean indicating verbose terminal output
 
     if verbose:
@@ -468,6 +502,8 @@ def run(pgmname, argv):
             [s.encode(terminalenc) for s in caption])
         print "Install drive       %s"      % ((drive == "!") and
             "<any>" or drive)
+        print "Extras directory    %s"      % ((extrasdir and
+            extrasdir.decode(filesystemenc).encode(terminalenc)) or "<none>")
         print "Text file(s)        %s"      % ((textfile and
             textfile.decode(filesystemenc).encode(terminalenc)) or "<none>")
         print "Certificate         %s"      % ((cert and
@@ -479,6 +515,7 @@ def run(pgmname, argv):
             [s.encode(terminalenc) for s in vendor])
         print "Autostart on boot   %s"      % ((autostart and "Yes") or "No")
         print "Run after install   %s"      % ((runinstall and "Yes") or "No")
+        print "Heap size in bytes  %d, %d" % (heapsizemin, heapsizemax)
         print
 
     # Generate SimpleSISWriter object.
@@ -590,9 +627,21 @@ def run(pgmname, argv):
             if len(string) > MAXOTHERFILESIZE:
                 raise ValueError("%s: input file too large" % srcfile)
 
+            # Split path into components.
+            srcpathcomp = srcfile.split(os.sep)
+            targetpathcomp = [s.decode(filesystemenc) for s in srcpathcomp]
+
+            # Handle extras directory.
+            if extrasdir != None and extrasdir == srcpathcomp[0]:
+                # Path is rooted at the drive root.
+                targetfile = u"%s:\\%s" % (drive, "\\".join(targetpathcomp[1:]))
+            else:
+                # Path is rooted at the application private directory.
+                targetfile = u"%s:\\private\\%08x\\%s" % (
+                    drive, uid3, "\\".join(targetpathcomp))
+
             # Add file to the SIS object.
-            target = srcfile.decode(filesystemenc).replace(os.sep, "\\")
-            sw.addfile(string, "%s:\\private\\%08x\\%s" % (drive, uid3, target))
+            sw.addfile(string, targetfile)
             del string
 
     # Add target device dependency.
@@ -610,7 +659,8 @@ def run(pgmname, argv):
 
     # Generate an EXE stub and add it to the SIS object.
     string = execstubdata.decode("base-64")
-    string = symbianutil.e32imagecrc(string, uid3, uid3, None, capmask)
+    string = symbianutil.e32imagecrc(string, uid3, uid3, None,
+                                     heapsizemin, heapsizemax, capmask)
     if runinstall:
         # To avoid running without dependencies, this has to be in the end.
         sw.addfile(string, exetarget, None, capabilities = capmask,
