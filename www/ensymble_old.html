@@ -18,6 +18,32 @@ path) and start using it!
 
 <H3>Older versions</H3>
 
+v0.26 2008-01-27
+<UL>
+<LI>Source:
+<A HREF="ensymble-0.26.tar.gz">ensymble-0.26.tar.gz</A> (92 kB)</LI>
+<LI>Pre-squeezed version for Python v2.2:
+<A HREF="ensymble_python2.2-0.26.py">ensymble_python2.2-0.26.py</A> (91 kB)</LI>
+<LI>Pre-squeezed version for Python v2.3:
+<A HREF="ensymble_python2.3-0.26.py">ensymble_python2.3-0.26.py</A> (81 kB)</LI>
+<LI>Pre-squeezed version for Python v2.4:
+<A HREF="ensymble_python2.4-0.26.py">ensymble_python2.4-0.26.py</A> (78 kB)</LI>
+<LI>Pre-squeezed version for Python v2.5:
+<A HREF="ensymble_python2.5-0.26.py">ensymble_python2.5-0.26.py</A> (76 kB)</LI>
+<LI>Documentation:
+<A HREF="README-0.26.txt">README-0.26.txt</A> (40 kB)</LI>
+</UL>
+<P>
+Changes:
+<UL>
+<LI>Incorporated a --runinstall option for the py2sis command, developed by
+Jari Kirma.</LI>
+<LI>Commands mergesis and signsis no longer choke on extra bytes in input SIS
+files, the bytes are simply discarded. PyS60 v1.4.2 SIS file from Nokia
+contains 1272 extra bytes. Purpose of these bytes is not known at this time
+and removing them seems to have no effect.</LI>
+</UL>
+
 v0.25 2007-12-15
 <UL>
 <LI>Source:
@@ -291,7 +317,7 @@ First public preview release: v0.10 2006-09-24
 
 <HR>
 <P ALIGN="right">
-Copyright &copy; 2006, 2007 Jussi Ylänen
+Copyright &copy; 2006, 2007, 2008 Jussi Ylänen
 <BR>
 jussi &lt;dot&gt; ylanen &lt;at&gt; iki &lt;dot&gt; fi
 

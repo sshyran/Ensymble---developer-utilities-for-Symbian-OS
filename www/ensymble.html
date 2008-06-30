@@ -79,30 +79,31 @@ path) and start using it!
 
 <H3>Latest</H3>
 
-v0.26 2008-01-27
+v0.27 2008-06-30
 <UL>
 <LI>Source:
-<A HREF="ensymble-0.26.tar.gz">ensymble-0.26.tar.gz</A> (92 kB)</LI>
+<A HREF="ensymble-0.27.tar.gz">ensymble-0.27.tar.gz</A> (96 kB)</LI>
 <LI>Pre-squeezed version for Python v2.2:
-<A HREF="ensymble_python2.2-0.26.py">ensymble_python2.2-0.26.py</A> (91 kB)</LI>
+<A HREF="ensymble_python2.2-0.27.py">ensymble_python2.2-0.27.py</A> (94 kB)</LI>
 <LI>Pre-squeezed version for Python v2.3:
-<A HREF="ensymble_python2.3-0.26.py">ensymble_python2.3-0.26.py</A> (81 kB)</LI>
+<A HREF="ensymble_python2.3-0.27.py">ensymble_python2.3-0.27.py</A> (83 kB)</LI>
 <LI>Pre-squeezed version for Python v2.4:
-<A HREF="ensymble_python2.4-0.26.py">ensymble_python2.4-0.26.py</A> (78 kB)</LI>
+<A HREF="ensymble_python2.4-0.27.py">ensymble_python2.4-0.27.py</A> (80 kB)</LI>
 <LI>Pre-squeezed version for Python v2.5:
-<A HREF="ensymble_python2.5-0.26.py">ensymble_python2.5-0.26.py</A> (76 kB)</LI>
+<A HREF="ensymble_python2.5-0.27.py">ensymble_python2.5-0.27.py</A> (78 kB)</LI>
 <LI>Documentation:
-<A HREF="README-0.26.txt">README-0.26.txt</A> (40 kB)</LI>
+<A HREF="README-0.27.txt">README-0.27.txt</A> (42 kB)</LI>
 </UL>
 <P>
 Changes:
 <UL>
-<LI>Incorporated a --runinstall option for the py2sis command, developed by
-Jari Kirma.
-<LI>Commands mergesis and signsis no longer choke on extra bytes in input SIS
-files, the bytes are simply discarded. PyS60 v1.4.2 SIS file from Nokia
-contains 1272 extra bytes. Purpose of these bytes is not known at this time
-and removing them seems to have no effect.
+<LI>Implemented --heapsize option for the py2sis and altere32 commands.
+Sometimes the default heap maximum limit of one megabyte is not enough, for
+example when handling large pictures from the built-in camera.</LI>
+<LI>Implemented an --extrasdir option for the py2sis command. It allows
+flexible placement of extra files, just like the simplesis command does.</LI>
+<LI>Added support for PKCS#8 format private keys. Some people have
+received these types of keys from Symbian.</LI>
 </UL>
 
 <H3>Older versions</H3>
@@ -112,6 +113,9 @@ in <A HREF="ensymble_old.html">the archives</A>.
 
 <H2>Project history</H2>
 <UL>
+<LI><STRONG>2008-06-30</STRONG>
+<BR>Released Ensymble v0.27 2008-06-30.
+</LI>
 <LI><STRONG>2008-01-27</STRONG>
 <BR>Released Ensymble v0.26 2008-01-27.
 </LI>
@@ -192,7 +196,7 @@ Symbian</LI>
 
 <HR>
 <P ALIGN="right">
-Copyright &copy; 2006, 2007 Jussi Ylänen
+Copyright &copy; 2006, 2007, 2008 Jussi Ylänen
 <BR>
 jussi &lt;dot&gt; ylanen &lt;at&gt; iki &lt;dot&gt; fi
 
