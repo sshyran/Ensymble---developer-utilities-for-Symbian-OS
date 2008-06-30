@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_version.py - Ensymble command line tool, version query command
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -39,4 +39,4 @@ Print Ensymble version.
 ##############################################################################
 
 def run(pgmname, argv):
-    print "Ensymble v0.26 2008-01-27"
+    print "Ensymble v0.27 2008-06-30"
