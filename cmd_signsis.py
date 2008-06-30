@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_signsis.py - Ensymble command line tool, signsis command
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -57,8 +57,8 @@ Options:
     cert        - Certificate to use for signing (PEM format)
     privkey     - Private key of the certificate (PEM format)
     passphrase  - Pass phrase of the private key (insecure, use stdin instead)
-    execaps     - Capability names, separated by "+" (none by default)
-    dllcaps     - Capability names, separated by "+" (none by default)
+    execaps     - Capability names, separated by "+" (not altered by default)
+    dllcaps     - Capability names, separated by "+" (not altered by default)
     encoding    - Local character encodings for terminal and filesystem
     verbose     - Print extra statistics
 
