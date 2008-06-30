@@ -3,7 +3,7 @@
 
 ##############################################################################
 # symbianutil.py - Utilities for working with Symbian OS-related data
-# Copyright 2006, 2007 Jussi Ylänen, Martin Storsjö
+# Copyright 2006, 2007, 2008 Jussi Ylänen, Martin Storsjö
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -37,7 +37,7 @@ def uidstostring(uid1, uid2, uid3):
     return struct.pack("<LLLL", uid1, uid2, uid3, crc)
 
 def ise32image(string):
-    '''Check if a given string contains a valid E32Image header'''
+    '''Check if a given string contains a valid E32Image header.'''
 
     if len(string) < 156:
         # Minimum header size is 156 bytes.
@@ -70,6 +70,24 @@ def e32imageinfo(image):
     capabilities = struct.unpack("<Q", image[136:144])[0]
 
     return (uid1, uid2, uid3, secureid, vendorid, capabilities)
+
+def parseintmagnitude(string):
+    '''Parse an integer and a magnitude. Magnitude can be "k" or "M" (case
+    is not important). There may be no white-space between the integer and
+    magnitude. Magnitudes are interpreted as 1024 and 1048576.'''
+
+    string = string.lower()
+
+    if string[-1] == "k":
+        magnitude = 1024
+        string = string[:-1]
+    elif string[-1] == "m":
+        magnitude = 1024 * 1024
+        string = string[:-1]
+    else:
+        magnitude = 1
+
+    return int(string, 10) * magnitude
 
 
 ##############################################################################
@@ -123,10 +141,10 @@ def uidcrc(uid1, uid2, uid3):
     return (long(oddcrc) << 16) | evencrc
 
 def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
-                capabilities = None):
+                heapsizemin = None, heapsizemax = None, capabilities = None):
     '''Return a modified e32image (or just the header) with UID checksum
     and header checksum (CCITT CRC-32) recalculated. Optionally modify
-    the UID3, secure ID, vendor ID and capability bit mask.'''
+    the UID3, secure ID, vendor ID, heap size and capability bit mask.'''
 
     if not ise32image(image):
         raise ValueError("not a valid e32image header")
@@ -149,6 +167,16 @@ def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
     else:
         vendoridstr = struct.pack("<L", vendorid)
 
+    if heapsizemin == None:
+        heapsizeminstr = image[56:60]
+    else:
+        heapsizeminstr = struct.pack("<l", heapsizemin)
+
+    if heapsizemax == None:
+        heapsizemaxstr = image[60:64]
+    else:
+        heapsizemaxstr = struct.pack("<l", heapsizemax)
+
     if capabilities == None:
         capabilitiesstr = image[136:144]
     else:
@@ -161,9 +189,11 @@ def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
     initialcrcstr = struct.pack("<L", 0xc90fdaa2L)
 
     # Construct a new header for CRC-32 calculation.
-    newheader = "%s%s%s%s%s%s%s%s" % (uidstr, image[16:20], initialcrcstr,
-                                      image[24:128], secureidstr, vendoridstr,
-                                      capabilitiesstr, image[144:156])
+    newheader = "%s%s%s%s%s%s%s%s%s%s%s" % (uidstr, image[16:20], initialcrcstr,
+                                            image[24:56], heapsizeminstr,
+                                            heapsizemaxstr, image[64:128],
+                                            secureidstr, vendoridstr,
+                                            capabilitiesstr, image[144:156])
 
     crc32 = crc32ccitt(newheader, 0xffffffffL, 0xffffffffL)
     crc32str = struct.pack("<L", crc32)
