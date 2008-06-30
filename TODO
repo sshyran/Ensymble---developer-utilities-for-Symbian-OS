@@ -1,3 +1,5 @@
+py2sis, simplesis: maybe remove warning about UID protected range?
+
 Try not to copy/paste so much.
 
 Dev-cert-request command. Needs IMEI and capabilities as extra data.

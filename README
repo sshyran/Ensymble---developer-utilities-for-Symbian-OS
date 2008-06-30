@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
                  Copyright 2006, 2007, 2008 Jussi Ylänen
 
-                         Last updated 2008-01-27
+                         Last updated 2008-06-30
 
 
 ABOUT
@@ -54,6 +54,7 @@ tested on the following systems:
  * Red Hat Enterprise Linux AS release 3 (i386) with Python v2.2.3
  * Red Hat Enterprise Linux AS release 4 (i386) with Python v2.3.4
  * Apple OS X Tiger (G4) with Python v2.3.5
+ * Apple OS X Leopard (i386) with Python v2.5
  * Microsoft Windows XP, SP2 with Python v2.5
 
 Note: Python for S60 versions 1.3.20 and older require that SIS files
@@ -286,6 +287,22 @@ or
 Capability names separated by "+" or a numeric capability bitmask. If no
 capability option is given, capabilities are not changed.
 
+    --heapsize=min,max
+    -H min,max
+
+Heap size limits for the e32image, only valid for EXEs. If no heap size
+option is given, the heap size limits are not changed. If only one value
+is given, it is used as both the heap minimum value and heap maximum
+value.
+
+Values may have suffix "k" or "M" (case insensitive) to denote kilobytes
+(1024 bytes) and megabytes (1048576 bytes), respectively.
+
+The heap minimum value determines if a program is allowed to start. If
+less than the set amount of memory is available, program start-up fails.
+The heap maximum value limits the memory a program can allocate. Memory
+allocations beyond the set limit will fail.
+
 
 EXAMPLES
 
@@ -308,6 +325,12 @@ with the new capabilities.
 This modifies every DLL file in the current directory using the same
 capabilities as above but in a numeric form. Original files will be
 modified, so use the "--inplace" option with caution!
+
+    $ ensymble.py altere32 --heapsize=4k,4M myapp_orig.exe myapp.exe
+
+Program "myapp.exe" is modified so that it can allocate upto four
+megabytes of memory. Heap minimum value is usually kept at the default
+four kilobytes.
 
 Note: When modifying the UID, the secure ID should be modified
 accordingly. Modifying UIDs of application EXEs is generally not
@@ -481,7 +504,8 @@ The source script or directory name. When a directory name is given, the
 directory structure is preserved under an application specific private
 directory ("\private\<uid>\") on the phone. A file called "default.py"
 is required to exist on the root of the directory given. This will be
-the main file that starts the application.
+the main file that starts the application. (See option "--extrasdir"
+below for more options for file placement.)
 
 When a regular file name is given, it will be located under the
 application specific private directory, with the name "default.py".
@@ -598,6 +622,18 @@ Installation drive "C" or "E" or "any", to select where the SIS is to be
 installed. Default is "any", which causes the phone to ask the user
 where to install the package.
 
+    --extrasdir=root
+    -x root
+
+Name of "extras" directory under the application source directory. The
+extras directory contains a directory tree which is placed under the
+root of the installation drive, instead of in the application private
+directory. If no extras directory name is given, this feature is
+disabled.
+
+Option "--extrasdir" is similar to the "simplesis" command (see below).
+It allows placing files under "\sys\bin" and "\resource", for example.
+
     --textfile=mytext_%C.txt
     -t mytext_%C.txt
 
@@ -687,18 +723,35 @@ Flag to control automatic startup of the application. On S60 3rd Edition
 phones, an application can register itself to be automatically started
 when the phone is turned on.
 
-Note: Self-signed applications and applications with UID in the 
-unprotected range cannot register to be automatically started (see 
+Note: Self-signed applications and applications with UID in the
+unprotected range cannot register to be automatically started (see
 options "--uid" and "--cert" above).
 
     --runinstall
     -R
 
-Run the application after installation. After copying all files to the 
+Run the application after installation. After copying all files to the
 phone, the application is automatically started.
 
-Note: Phones will ignore this flag in SIS files using self-signed 
+Note: Phones will ignore this flag in SIS files using self-signed
 certificates (see option "--cert" above).
+
+    --heapsize=min,max
+    -H min,max
+
+Heap size limits for the application. Defaults of 4 kilobytes and one
+megabyte are used if no heap size option is given. If only one value is
+given, it is used as both the heap minimum and heap maximum value.
+
+Values may have suffix "k" or "M" (case insensitive) to denote kilobytes
+(1024 bytes) and megabytes (1048576 bytes), respectively.
+
+The heap minimum value determines if a program is allowed to start. If
+less than the set amount of memory is available, program start-up fails.
+The heap maximum value limits the memory a program can allocate. Memory
+allocations beyond the set limit will fail. The default of one megabyte
+is usually enough, but processing large datasets such as images from an
+integrated camera might require setting the heap maximum value higher.
 
 
 EXAMPLES
@@ -1050,7 +1103,7 @@ No parameters
 EXAMPLES
 
     $ ensymble.py version
-    Ensymble v0.26 2008-01-27
+    Ensymble v0.27 2008-06-30
 
 The version string is printed.
 
@@ -1058,13 +1111,19 @@ The version string is printed.
 PROJECT HISTORY
 ===============
 
+2008-06-30
+Released Ensymble version v0.27 2008-06-30.
+Implemented --heapsize option for the py2sis and altere32 commands.
+Implemented --extrasdir option for the py2sis command for more flexibility.
+Added support for PKCS#8 format private keys which Symbian sends to people.
+
 2008-01-27
-Released Ensymble version v0.26 2008-01-27
+Released Ensymble version v0.26 2008-01-27.
 Incorporated a --runinstall option for the py2sis command, by Jari Kirma.
 Commands mergesis and signsis no longer choke on extra bytes in input SIS files.
 
 2007-12-15
-Released Ensymble version v0.25 2007-12-15
+Released Ensymble version v0.25 2007-12-15.
 Added --drive option to py2sis and simplesis commands, for installation drive.
 Added --vendor option for the simplesis command, as well.
 The OpenSSL command line tool can reside in the same directory as Ensymble now.
@@ -1073,27 +1132,27 @@ Made it possible to use numeric capability bitmasks.
 Rewrote installation instructions to better take Windows users into account.
 
 2007-10-18
-Released Ensymble version v0.24 2007-10-18
+Released Ensymble version v0.24 2007-10-18.
 Added --autostart option to the py2sis command, like in the official py2sis.
 Added --vendor option to the py2sis command, useful when signing packages.
 Added infoe32 command contributed by Martin Storsjö.
 
 2007-07-16
-Released Ensymble version v0.23 2007-07-16
+Released Ensymble version v0.23 2007-07-16.
 Python for S60 changed its UID due to Nokia finally signing it, adapted.
 Clarified README in using embedded version and UID strings with py2sis command.
 
 2007-02-08
-Released Ensymble version 2007-02-08 v0.22
+Released Ensymble version 2007-02-08 v0.22.
 Added simplesis command for creating a SIS package out of a directory structure.
 Added maximum file size sanity check for py2sis command.
 
 2007-02-01
-Released Ensymble version 2007-02-01 v0.21
+Released Ensymble version 2007-02-01 v0.21.
 Added mergesis command for combining several SIS files into one.
 
 2007-01-01
-Released Ensymble version 2007-01-01 v0.20
+Released Ensymble version 2007-01-01 v0.20.
 Revamped documentation. Now every command and option is explained.
 Added signsis command for (re-)signing SIS files.
 Added altere32 command for altering pre-compiled Symbian EXEs and DLLs.
@@ -1106,12 +1165,12 @@ Made exception dumps more verbose when the --debug option is present.
 Miscellaneous clean-ups.
 
 2006-11-18
-Released Ensymble version 2006-11-18 v0.15
+Released Ensymble version 2006-11-18 v0.15.
 Rewrote certificate to binary conversion. Fixes problems on Windows.
 Removed line feed after pass phrase for OpenSSL. It will not work on Windows.
 
 2006-11-12
-Released Ensymble version 2006-11-12 v0.14
+Released Ensymble version 2006-11-12 v0.14.
 Modified the generated SIS a bit, to be compatible with native signsis.exe.
 Test UIDs use lower case appname now, due to Symbian OS being case insensitive.
 Added support for signature chains. Symbian Signed uses those.
