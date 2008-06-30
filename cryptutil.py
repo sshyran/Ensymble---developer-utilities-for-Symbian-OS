@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cryptutil.py - OpenSSL command line utility wrappers for Ensymble
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -38,7 +38,8 @@ openssldebug   = False  # True for extra debug output
 ##############################################################################
 
 def setdebug(active):
-    '''Activate or deactivate debug output.
+    '''
+    Activate or deactivate debug output.
 
     setdebug(...) -> None
 
@@ -52,7 +53,8 @@ def setdebug(active):
     openssldebug =  not not active  # Convert to boolean.
 
 def signstring(privkey, passphrase, string):
-    '''Sign a binary string using a given private key and its pass phrase.
+    '''
+    Sign a binary string using a given private key and its pass phrase.
 
     signstring(...) -> (signature, keytype)
 
@@ -63,8 +65,9 @@ def signstring(privkey, passphrase, string):
     signature   signature, an ASN.1 encoded binary string
     keytype     detected key type, string, "RSA" or "DSA"
 
-    NOTE: On platforms with poor file system security, unencrypted version
-    of the private key may be grabbed from the temporary directory!'''
+    NOTE: On platforms with poor file system security, decrypted version
+    of the private key may be grabbed from the temporary directory!
+    '''
 
     if passphrase == None or len(passphrase) == 0:
         # OpenSSL does not like empty stdin while reading a passphrase from it.
@@ -73,52 +76,29 @@ def signstring(privkey, passphrase, string):
     # Create a temporary directory for OpenSSL to work in.
     tempdir = mkdtemp("ensymble-XXXXXX")
 
-    # Determine key type.
-    if privkey.find("-----BEGIN DSA PRIVATE KEY-----") >= 0:
-        keytype = Bunch(name = "DSA", convcmd = "dsa", signcmd = "-dss1")
-    elif privkey.find("-----BEGIN RSA PRIVATE KEY-----") >= 0:
-        keytype = Bunch(name = "RSA", convcmd = "rsa", signcmd = "-sha1")
-    else:
-        raise ValueError("not an RSA or DSA private key in PEM format")
+    keyfilename     = os.path.join(tempdir, "privkey.pem")
+    sigfilename     = os.path.join(tempdir, "signature.dat")
+    stringfilename  = os.path.join(tempdir, "string.dat")
 
     try:
-        keyfilename     = os.path.join(tempdir, "privkey.pem")
-        key2filename    = os.path.join(tempdir, "privkey2.pem")
-        sigfilename     = os.path.join(tempdir, "signature.dat")
-        stringfilename  = os.path.join(tempdir, "string.dat")
-
-        # Add enclosing quotes to any filename containing whitespace. Quotes
-        # are only relevant when creating command lines to execute.
-        keyfilename_cmd = keyfilename
-        if " " in keyfilename:
-            keyfilename_cmd = '"%s"' % keyfilename_cmd
-
-        key2filename_cmd = key2filename
-        if " " in key2filename:
-            key2filename_cmd = '"%s"' % key2filename_cmd
-
-        sigfilename_cmd = sigfilename
-        if " " in sigfilename:
-            sigfilename_cmd = '"%s"' % sigfilename_cmd
-
-        stringfilename_cmd = stringfilename
-        if " " in stringfilename:
-            stringfilename_cmd = '"%s"' % stringfilename_cmd
-
-        # Write PEM format private key to file.
-        keyfile = file(keyfilename, "wb")
-        keyfile.write(privkey)
-        keyfile.close()
+        # If the private key is in PKCS#8 format, it needs to be converted.
+        privkey = convertpkcs8key(tempdir, privkey, passphrase)
 
         # Decrypt the private key. Older versions of OpenSSL do not
         # accept the "-passin" parameter for the "dgst" command.
-        runopenssl("%s -in %s -out %s -passin stdin" %
-                   (keytype.convcmd, keyfilename_cmd, key2filename_cmd),
-                   passphrase)
+        privkey, keytype = decryptkey(tempdir, privkey, passphrase)
 
-        if not os.path.isfile(key2filename):
-            # OpenSSL did not create output file. Probably a wrong pass phrase.
-            raise ValueError("wrong pass phrase")
+        if keytype == "DSA":
+            signcmd = "-dss1"
+        elif keytype == "RSA":
+            signcmd = "-sha1"
+        else:
+            raise ValueError("unknown private key type %s" % keytype)
+
+        # Write decrypted PEM format private key to file.
+        keyfile = file(keyfilename, "wb")
+        keyfile.write(privkey)
+        keyfile.close()
 
         # Write binary string to a file. On some systems, stdin is
         # always in text mode and thus unsuitable for binary data.
@@ -128,21 +108,23 @@ def signstring(privkey, passphrase, string):
 
         # Sign binary string using the decrypted private key.
         command = ("dgst %s -binary -sign %s "
-                   "-out %s %s") % (keytype.signcmd, key2filename_cmd,
-                                    sigfilename_cmd, stringfilename_cmd)
+                   "-out %s %s") % (signcmd, quote(keyfilename),
+                                    quote(sigfilename), quote(stringfilename))
         runopenssl(command)
 
-        # Check that the signature was successfully generated.
-        if not os.path.isfile(sigfilename):
-            raise ValueError("unspecified error during signing")
+        signature = ""
+        if os.path.isfile(sigfilename):
+            # Read signature from file.
+            sigfile = file(sigfilename, "rb")
+            signature = sigfile.read()
+            sigfile.close()
 
-        # Read signature from file.
-        sigfile = file(sigfilename, "rb")
-        signature = sigfile.read()
-        sigfile.close()
+        if signature.strip() == "":
+            # OpenSSL did not create output, something went wrong.
+            raise ValueError("unspecified error during signing")
     finally:
         # Delete temporary files.
-        for fname in (keyfilename, key2filename, sigfilename, stringfilename):
+        for fname in (keyfilename, sigfilename, stringfilename):
             try:
                 os.remove(fname)
             except OSError:
@@ -151,17 +133,19 @@ def signstring(privkey, passphrase, string):
         # Remove temporary directory.
         os.rmdir(tempdir)
 
-    return (signature, keytype.name)
+    return (signature, keytype)
 
 
 def certtobinary(pemcert):
-    '''Convert X.509 certificates from PEM (base-64) format to DER (binary).
+    '''
+    Convert X.509 certificates from PEM (base-64) format to DER (binary).
 
     certtobinary(...) -> dercert
 
     pemcert     One or more X.509 certificates in PEM (base-64) format, a string
 
-    dercert     X.509 certificate(s), an ASN.1 encoded binary string'''
+    dercert     X.509 certificate(s), an ASN.1 encoded binary string
+    '''
 
     # Find base-64 encoded data between header and footer.
     header = "-----BEGIN CERTIFICATE-----"
@@ -206,6 +190,127 @@ def certtobinary(pemcert):
 # Module-level functions which are normally only used by this module
 ##############################################################################
 
+def convertpkcs8key(tempdir, privkey, passphrase):
+    '''
+    Convert a PKCS#8-format RSA or DSA private key to an older
+    SSLeay-compatible format.
+
+    convertpkcs8key(...) -> privkeyout
+
+    tempdir     Path to pre-existing temporary directory with read/write access
+    privkey     RSA or DSA private key, a string in PEM (base-64) format
+    passphrase  pass phrase for the private key, a non-Unicode string or None
+
+    privkeyout  decrypted private key in PEM (base-64) format
+    '''
+
+    # Determine PKCS#8 private key type.
+    if privkey.find("-----BEGIN PRIVATE KEY-----") >= 0:
+        # Unencrypted PKCS#8 private key
+        encryptcmd = "-nocrypt"
+    elif privkey.find("-----BEGIN ENCRYPTED PRIVATE KEY-----") >= 0:
+        # Encrypted PKCS#8 private key
+        encryptcmd = ""
+    else:
+        # Not a PKCS#8 private key, nothing to do.
+        return privkey
+
+    keyinfilename = os.path.join(tempdir, "keyin.pem")
+    keyoutfilename = os.path.join(tempdir, "keyout.pem")
+
+    try:
+        # Write PEM format private key to file.
+        keyinfile = file(keyinfilename, "wb")
+        keyinfile.write(privkey)
+        keyinfile.close()
+
+        # Convert a PKCS#8 private key to older SSLeay-compatible format.
+        # Keep pass phrase as-is.
+        runopenssl("pkcs8 -in %s -out %s -passin stdin -passout stdin %s" %
+                   (quote(keyinfilename), quote(keyoutfilename), encryptcmd),
+                   "%s\n%s\n" % (passphrase, passphrase))
+
+        privkey = ""
+        if os.path.isfile(keyoutfilename):
+            # Read converted private key back.
+            keyoutfile = file(keyoutfilename, "rb")
+            privkey = keyoutfile.read()
+            keyoutfile.close()
+
+        if privkey.strip() == "":
+            # OpenSSL did not create output. Probably a wrong pass phrase.
+            raise ValueError("wrong pass phrase or invalid PKCS#8 private key")
+    finally:
+        # Delete temporary files.
+        for fname in (keyinfilename, keyoutfilename):
+            try:
+                os.remove(fname)
+            except OSError:
+               pass
+
+    return privkey
+
+def decryptkey(tempdir, privkey, passphrase):
+    '''
+    decryptkey(...) -> (privkeyout, keytype)
+
+    tempdir     Path to pre-existing temporary directory with read/write access
+    privkey     RSA or DSA private key, a string in PEM (base-64) format
+    passphrase  pass phrase for the private key, a non-Unicode string or None
+    string      a binary string to sign
+
+    keytype     detected key type, string, "RSA" or "DSA"
+    privkeyout  decrypted private key in PEM (base-64) format
+
+    NOTE: On platforms with poor file system security, decrypted version
+    of the private key may be grabbed from the temporary directory!
+    '''
+
+    # Determine private key type.
+    if privkey.find("-----BEGIN DSA PRIVATE KEY-----") >= 0:
+        keytype = "DSA"
+        convcmd = "dsa"
+    elif privkey.find("-----BEGIN RSA PRIVATE KEY-----") >= 0:
+        keytype = "RSA"
+        convcmd = "rsa"
+    else:
+        raise ValueError("not an RSA or DSA private key in PEM format")
+
+    keyinfilename = os.path.join(tempdir, "keyin.pem")
+    keyoutfilename = os.path.join(tempdir, "keyout.pem")
+
+    try:
+        # Write PEM format private key to file.
+        keyinfile = file(keyinfilename, "wb")
+        keyinfile.write(privkey)
+        keyinfile.close()
+
+        # Decrypt the private key. Older versions of OpenSSL do not
+        # accept the "-passin" parameter for the "dgst" command.
+        runopenssl("%s -in %s -out %s -passin stdin" %
+                   (convcmd, quote(keyinfilename),
+                    quote(keyoutfilename)), passphrase)
+
+        privkey = ""
+        if os.path.isfile(keyoutfilename):
+            # Read decrypted private key back.
+            keyoutfile = file(keyoutfilename, "rb")
+            privkey = keyoutfile.read()
+            keyoutfile.close()
+
+        if privkey.strip() == "":
+            # OpenSSL did not create output. Probably a wrong pass phrase.
+            raise ValueError("wrong pass phrase or invalid private key")
+    finally:
+        # Delete temporary files.
+        for fname in (keyinfilename, keyoutfilename):
+            try:
+                os.remove(fname)
+            except OSError:
+               pass
+
+    return (privkey, keytype)
+
 def mkdtemp(template):
     '''
     Create a unique temporary directory.
@@ -236,6 +341,12 @@ def mkdtemp(template):
         # All unique names in use, raise an error.
         raise OSError(errno.EEXIST, os.strerror(errno.EEXIST),
                       os.path.join(systemp, template))
+
+def quote(filename):
+    '''Quote a filename if it has spaces in it.'''
+    if " " in filename:
+        filename = '"%s"' % filename
+    return filename
 
 def runopenssl(command, datain = ""):
     '''Run the OpenSSL command line tool with the given parameters and data.'''
@@ -299,18 +410,5 @@ def findopenssl():
     else:
         raise IOError("no valid OpenSSL command line tool found in PATH")
 
-    if " " in cmd:
-        # Add quotes around command in case of embedded whitespace on path.
-        cmd = '"%s"' % cmd
-
-    opensslcommand = cmd
-
-
-##############################################################################
-# Utility classes for module internal use
-##############################################################################
-
-class Bunch:
-    '''Bunch recipe from Python Cookbook, by Alex Martelli'''
-    def __init__(self, **kwds):
-        self.__dict__.update(kwds)
+    # Add quotes around command in case of embedded whitespace on path.
+    opensslcommand = quote(cmd)
