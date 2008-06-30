@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_signsis.py - Ensymble command line tool, altere32 command
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -38,11 +38,12 @@ import symbianutil
 shorthelp = 'Alter the IDs and capabilities of e32image files (EXEs, DLLs)'
 longhelp  = '''altere32
     [--uid=0x01234567] [--secureid=0x01234567] [--vendorid=0x01234567]
-    [--caps=Cap1+Cap2+...] [--inplace]
+    [--caps=Cap1+Cap2+...] [--heapsize=min,max] [--inplace]
     [--encoding=terminal,filesystem] [--verbose]
     <infile> [outfile]
 
-Alter the IDs and capabilities of e32image files (Symbian OS EXEs and DLLs).
+Alter the IDs, capabilities and heap sizes of e32image files (Symbian OS
+EXEs and DLLs).
 
 Options:
     infile      - Path of the original e32image file (or many, if --inplace set)
@@ -51,6 +52,7 @@ Options:
     secureid    - Secure ID for the e32image (should normally be same as UID)
     vendorid    - Vendor ID for the e32image
     caps        - Capability names, separated by "+"
+    heapsize    - Heap size, minimum and/or maximum (not altered by default)
     inplace     - Allow more than one input file, modify input files in-place
     encoding    - Local character encodings for terminal and filesystem
     verbose     - Print extra statistics
@@ -106,9 +108,9 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "u:s:r:b:ie:vh"
+    short_opts = "u:s:r:b:H:ie:vh"
     long_opts = [
-        "uid=", "secureid=", "vendorid=", "caps=",
+        "uid=", "secureid=", "vendorid=", "caps=", "heapsize=",
         "inplace", "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
@@ -150,6 +152,30 @@ def run(pgmname, argv):
     else:
         capmask = None
 
+    # Get heap sizes.
+    heapsize = opts.get("--heapsize", opts.get("-H", None))
+    if heapsize != None:
+        try:
+            heapsize = heapsize.split(",", 1)
+            heapsizemin = symbianutil.parseintmagnitude(heapsize[0])
+            if len(heapsize) == 1:
+                # Only one size given, use it as both.
+                heapsizemax = heapsizemin
+            else:
+                heapsizemax = symbianutil.parseintmagnitude(heapsize[1])
+        except (ValueError, TypeError, IndexError):
+            raise ValueError("%s: invalid heap size, one or two values expected"
+                             % ",".join(heapsize))
+
+        # Warn if the minimum heap size is larger than the maximum heap size.
+        # Resulting e32image file will probably prevent any SIS from installing.
+        if heapsizemin > heapsizemax:
+            print ("%s: warning: minimum heap size larger than "
+                   "maximum heap size" % pgmname)
+    else:
+        heapsizemin = None
+        heapsizemax = None
+
     # Determine parameter format. Modifying files in-place or not.
     inplace = False
     if "--inplace" in opts.keys() or "-i" in opts.keys():
@@ -176,15 +202,17 @@ def run(pgmname, argv):
 
     # Ingredients for successful e32image file alteration:
     #
-    # terminalenc          Terminal character encoding (autodetected)
-    # filesystemenc        File system name encoding (autodetected)
-    # files                File names of e32image files, filesystemenc encoded
-    # uid3                 Application UID3, long integer or None
-    # secureid             Secure ID, long integer or None
-    # vendorid             Vendor ID, long integer or None
-    # caps, capmask        Capability names and bitmask or None
-    # inplace              Multiple input files or single input / output pair
-    # verbose              Boolean indicating verbose terminal output
+    # terminalenc      Terminal character encoding (autodetected)
+    # filesystemenc    File system name encoding (autodetected)
+    # files            File names of e32image files, filesystemenc encoded
+    # uid3             Application UID3, long integer or None
+    # secureid         Secure ID, long integer or None
+    # vendorid         Vendor ID, long integer or None
+    # caps, capmask    Capability names and bitmask or None
+    # heapsizemin      Heap that must be available for the app. to start or None
+    # heapsizemax      Maximum amount of heap the app. can allocate or None
+    # inplace          Multiple input files or single input / output pair
+    # verbose          Boolean indicating verbose terminal output
 
     if verbose:
         print
@@ -212,9 +240,14 @@ def run(pgmname, argv):
             print "Capabilities             0x%x (%s)" % (capmask, caps)
         else:
             print "Capabilities             <not set>"
+        if heapsizemin != None:
+            print "Heap size in bytes       %d, %d" % (heapsizemin, heapsizemax)
+        else:
+            print "Heap size in bytes       <not set>"
         print
 
-    if (uid3, secureid, vendorid, caps) == (None, None, None, None):
+    if ((uid3, secureid, vendorid, caps, heapsizemin) ==
+        (None, None, None, None, None)):
         print "%s: no options set, doing nothing" % pgmname
         return
 
@@ -230,7 +263,8 @@ def run(pgmname, argv):
         # Modify the e32image header.
         try:
             outstring = symbianutil.e32imagecrc(instring, uid3,
-                                                secureid, vendorid, capmask)
+                                                secureid, vendorid, heapsizemin,
+                                                heapsizemax, capmask)
         except ValueError:
             raise ValueError("%s: not a valid e32image file" % infile)
 
@@ -245,7 +279,7 @@ def run(pgmname, argv):
         f.close()
 
         if not inplace:
-            # While --inplace is in effect, files[1] is the output
+            # While --inplace is not in effect, files[1] is the output
             # file name, so must stop after one iteration.
             break
 
