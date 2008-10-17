@@ -1,14 +1,14 @@
              The Ensymble developer utilities for Symbian OS
-                 Copyright 2006, 2007, 2008 Jussi Ylänen
+                 Copyright 2006, 2007, 2008 Jussi YlÃ¤nen
 
-                         Last updated 2008-06-30
+                         Last updated 2008-10-17
 
 
 ABOUT
 =====
 
 This is the Ensymble developer utilities for Symbian OS(TM), a
-collection of Python® modules and command line programs for Symbian OS
+collection of PythonÂ® modules and command line programs for Symbian OS
 [1] software development.
 
 Current focus of Ensymble development is to provide useful tools for
@@ -21,12 +21,12 @@ development tasks will follow.
 A long term goal of Ensymble is to provide a cross-platform, open-source
 way to do Symbian OS software development, supporting Symbian OS
 versions 9.1 and later. The original tools by Symbian are closed source
-and only available for the Windows® operating system.
+and only available for the WindowsÂ® operating system.
 
 Symbian OS is the operating system used by Nokia [3] in some of its
 mobile phones [4]. Other manufacturers have also licensed Symbian OS.
 Python for S60 is a port of the popular Python programming language [5]
-to a Nokia phone platform called S60® [6]. Before November 2005, S60 was
+to a Nokia phone platform called S60Â® [6]. Before November 2005, S60 was
 called Series 60.
 
 
@@ -1111,6 +1111,9 @@ The version string is printed.
 PROJECT HISTORY
 ===============
 
+2008-10-17
+Converted everything from ISO-8859-1 to UTF-8 encoding.
+
 2008-06-30
 Released Ensymble version v0.27 2008-06-30.
 Implemented --heapsize option for the py2sis and altere32 commands.
@@ -1135,7 +1138,7 @@ Rewrote installation instructions to better take Windows users into account.
 Released Ensymble version v0.24 2007-10-18.
 Added --autostart option to the py2sis command, like in the official py2sis.
 Added --vendor option to the py2sis command, useful when signing packages.
-Added infoe32 command contributed by Martin Storsjö.
+Added infoe32 command contributed by Martin StorsjÃ¶.
 
 2007-07-16
 Released Ensymble version v0.23 2007-07-16.
@@ -1205,7 +1208,7 @@ LICENSE
 =======
 
 Ensymble developer utilities for Symbian OS(TM)
-Copyright 2006, 2007 Jussi Ylänen
+Copyright 2006, 2007 Jussi YlÃ¤nen
 Released under the GNU General Public Licence (see file COPYING)
 
 
@@ -1266,7 +1269,7 @@ S60 Platform
 http://www.s60.com
 
 [7]
-Python-to-SIS, the next generation by Jussi Ylänen
+Python-to-SIS, the next generation by Jussi YlÃ¤nen
 http://www.nbl.fi/jussi.ylanen/py2sisng.html
 
 [8]

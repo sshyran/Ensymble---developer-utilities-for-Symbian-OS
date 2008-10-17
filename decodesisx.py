@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: iso8859-1 -*-
+# -*- coding: utf-8 -*-
 
 ##############################################################################
 # decodesisx.py - Decodes a Symbian OS v9.x SISX file
-# Copyright 2006, 2007 Jussi Yl‰nen
+# Copyright 2006, 2007 Jussi Yl√§nen
 #
 # This program is based on a whitepaper by Symbian's Security team:
 # Symbian OS v9.X SIS File Format Specification, Version 1.1, June 2006

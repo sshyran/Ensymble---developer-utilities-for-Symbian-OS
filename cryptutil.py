@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: iso8859-1 -*-
+# -*- coding: utf-8 -*-
 
 ##############################################################################
 # cryptutil.py - OpenSSL command line utility wrappers for Ensymble
-# Copyright 2006, 2007, 2008 Jussi Yl‰nen
+# Copyright 2006, 2007, 2008 Jussi Yl√§nen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #

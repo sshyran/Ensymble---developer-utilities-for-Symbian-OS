@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: iso8859-1 -*-
+# -*- coding: utf-8 -*-
 
 ##############################################################################
 # ensymble.py - Ensymble command line tool
-# Copyright 2006, 2007 Jussi Ylänen, Martin Storsjö
+# Copyright 2006, 2007 Jussi YlÃ¤nen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #

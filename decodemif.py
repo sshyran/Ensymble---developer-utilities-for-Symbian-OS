@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: iso8859-1 -*-
+# -*- coding: utf-8 -*-
 
 ##############################################################################
 # decodemif.py - Decodes a Symbian OS v9.x multi-image file (MIF)
-# Copyright 2006, 2007 Jussi Yl‰nen
+# Copyright 2006, 2007 Jussi Yl√§nen
 #
 # This program is part of Ensymble developer utilities for Symbian OS(TM).
 #

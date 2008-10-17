@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-# -*- coding: iso8859-1 -*-
+# -*- coding: utf-8 -*-
 
 ##############################################################################
 # cmd_version.py - Ensymble command line tool, version query command
-# Copyright 2006, 2007, 2008 Jussi Yl‰nen
+# Copyright 2006, 2007, 2008 Jussi Yl√§nen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
