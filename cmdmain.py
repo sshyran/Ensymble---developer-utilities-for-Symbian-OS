@@ -3,7 +3,7 @@
 
 ##############################################################################
 # ensymble.py - Ensymble command line tool
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -26,10 +26,10 @@ import sys
 import os
 
 # Import command modules.
-cmddict     = {"altere32":  None, "infoe32":    None,
-               "mergesis":  None, "py2sis":     None,
-               "signsis":   None, "simplesis":  None,
-               "version":   None}
+cmddict     = {"altere32":  None, "genuid":     None,
+               "infoe32":   None, "mergesis":   None,
+               "py2sis":    None, "signsis":    None,
+               "simplesis": None, "version":    None}
 for cmdname in cmddict.keys():
     cmddict[cmdname] = __import__("cmd_%s" % cmdname, globals(), locals(), [])
 
