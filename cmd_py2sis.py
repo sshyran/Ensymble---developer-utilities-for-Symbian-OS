@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_py2sis.py - Ensymble command line tool, py2sis command
-# Copyright 2006, 2007, 2008 Jussi Ylänen
+# Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -241,14 +241,16 @@ def run(pgmname, argv):
     appname = opts.get("--appname", opts.get("-n", basename))
     appname = appname.decode(terminalenc)
 
+    # Auto-generate a test-range UID from application name.
+    autouid = symbianutil.uidfromname(appname)
+
     # Get UID3.
     uid3 = opts.get("--uid", opts.get("-u", uid3))
     if uid3 == None:
-        # No UID given, auto-generate a test UID from application name.
-        uid3 = (symbianutil.crc32ccitt(appname.lower()) &
-                0x0fffffffL) | 0xe0000000L
+        # No UID given, use auto-generated UID.
+        uid3 = autouid
         print ("%s: warning: no UID given, using auto-generated "
-               "test UID 0x%08x" % (pgmname, uid3))
+               "test-range UID 0x%08x" % (pgmname, uid3))
     elif uid3.lower().startswith("0x"):
         # Prefer hex UIDs with leading "0x".
         uid3 = long(uid3, 16)
@@ -266,6 +268,11 @@ def run(pgmname, argv):
                        (pgmname, uid3))
         except ValueError:
             raise ValueError("invalid UID string '%s'" % uid3)
+
+    # Warn against specifying a test-range UID manually.
+    if uid3 & 0xf0000000L == 0xe0000000L and uid3 != autouid:
+        print ("%s: warning: manually specifying a test-range UID is "
+               "not recommended" % pgmname)
 
     # Determine application language(s), use "EN" by default.
     lang = opts.get("--lang", opts.get("-l", "EN")).split(",")
@@ -617,6 +624,11 @@ def run(pgmname, argv):
         sw.addfile(string, "%s:\\private\\%08x\\%s" % (drive, uid3, target))
         del string
     else:
+        if extrasdir != None:
+            sysbinprefix = os.path.join(extrasdir, "sys", "bin", "")
+        else:
+            sysbinprefix = os.path.join(os.sep, "sys", "bin", "")
+
         # More than one file, use original path names.
         for srcfile in srcfiles:
             # Read file.
@@ -631,7 +643,23 @@ def run(pgmname, argv):
             srcpathcomp = srcfile.split(os.sep)
             targetpathcomp = [s.decode(filesystemenc) for s in srcpathcomp]
 
-            # Handle extras directory.
+            # Check if the file is an E32Image (EXE or DLL).
+            filecapmask = symbianutil.e32imagecaps(string)
+
+            # Warn against common mistakes when dealing with E32Image files.
+            if filecapmask != None:
+                if not srcfile.startswith(sysbinprefix):
+                    # Warn against E32Image files outside /sys/bin.
+                    print ("%s: warning: %s is an E32Image (EXE or DLL) "
+                           "outside %s" % (pgmname, srcfile, sysbinprefix))
+                elif (symbianutil.ise32image(string) == "DLL" and
+                      (filecapmask & ~capmask) != 0x00000000L):
+                    # Warn about insufficient capabilities to load
+                    # a DLL from the PyS60 application.
+                    print ("%s: warning: insufficient capabilities to "
+                           "load %s" % (pgmname, srcfile))
+
+            # Handle the extras directory.
             if extrasdir != None and extrasdir == srcpathcomp[0]:
                 # Path is rooted at the drive root.
                 targetfile = u"%s:\\%s" % (drive, "\\".join(targetpathcomp[1:]))
@@ -641,7 +669,7 @@ def run(pgmname, argv):
                     drive, uid3, "\\".join(targetpathcomp))
 
             # Add file to the SIS object.
-            sw.addfile(string, targetfile)
+            sw.addfile(string, targetfile, capabilities = filecapmask)
             del string
 
     # Add target device dependency.
