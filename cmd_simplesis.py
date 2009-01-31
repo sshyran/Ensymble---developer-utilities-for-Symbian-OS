@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_simplesis.py - Ensymble command line tool, simplesis command
-# Copyright 2006, 2007 Jussi Ylänen
+# Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -209,14 +209,16 @@ def run(pgmname, argv):
     else:
         raise ValueError("wrong number of arguments")
 
+    # Auto-generate a test-range UID from basename.
+    autouid = symbianutil.uidfromname(basename.decode(filesystemenc))
+
     # Get package UID.
     puid = opts.get("--uid", opts.get("-u", None))
     if puid == None:
-        # No UID given, auto-generate a test UID from basename.
-        puid = (symbianutil.crc32ccitt(basename.lower()) &
-                0x0fffffffL) | 0xe0000000L
+        # No UID given, use auto-generated UID.
+        puid = autouid
         print ("%s: warning: no UID given, using auto-generated "
-               "test UID 0x%08x" % (pgmname, puid))
+               "test-range UID 0x%08x" % (pgmname, puid))
     elif puid.lower().startswith("0x"):
         # Prefer hex UIDs with leading "0x".
         puid = long(puid, 16)
@@ -234,6 +236,11 @@ def run(pgmname, argv):
                        (pgmname, puid))
         except ValueError:
             raise ValueError("invalid UID string '%s'" % puid)
+
+    # Warn against specifying a test-range UID manually.
+    if puid & 0xf0000000L == 0xe0000000L and puid != autouid:
+        print ("%s: warning: manually specifying a test-range UID is "
+               "not recommended" % pgmname)
 
     # Determine package language(s), use "EN" by default.
     lang = opts.get("--lang", opts.get("-l", "EN")).split(",")
@@ -421,7 +428,7 @@ def run(pgmname, argv):
             raise ValueError("input file too large")
 
         # Check if the file is an E32Image (EXE or DLL).
-        caps = gete32imagecaps(string)
+        caps = symbianutil.e32imagecaps(string)
 
         if caps != None and not srcfile.startswith(sysbinprefix):
             print ("%s: warning: %s is an E32Image (EXE or DLL) outside %s%s" %
@@ -509,12 +516,3 @@ def readtextfiles(pattern, languages):
         texts.append(text.decode("UTF-8").encode("UTF-16LE"))
 
     return texts
-
-def gete32imagecaps(string):
-    '''Check if a given string is an E32Image file and return its capabilities.
-    '''
-
-    if not symbianutil.ise32image(string):
-        return None
-
-    return struct.unpack("<Q", string[136:144])[0]
