@@ -15,7 +15,7 @@ if test -n "$2"; then
 fi
 
 "$PYTHON" squeeze/squeeze.py -1 -o "$name" -b cmdmain cmdmain.py \
-  cmd_altere32.py cmd_infoe32.py cmd_mergesis.py cmd_py2sis.py \
+  cmd_altere32.py cmd_genuid.py cmd_infoe32.py cmd_mergesis.py cmd_py2sis.py \
   cmd_signsis.py cmd_simplesis.py cmd_version.py cryptutil.py miffile.py \
   rscfile.py sisfield.py sisfile.py symbianutil.py defaultcert.py
 cp "$name".py "$1"
