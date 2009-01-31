@@ -3,7 +3,7 @@
 
 ##############################################################################
 # symbianutil.py - Utilities for working with Symbian OS-related data
-# Copyright 2006, 2007, 2008 Jussi Ylänen
+# Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -37,31 +37,40 @@ def uidstostring(uid1, uid2, uid3):
     return struct.pack("<LLLL", uid1, uid2, uid3, crc)
 
 def ise32image(string):
-    '''Check if a given string contains a valid E32Image header.'''
+    '''Check if a given string contains a valid E32Image header.
+    Return "EXE", "DLL" or None.'''
 
     if len(string) < 156:
         # Minimum header size is 156 bytes.
-        return False
+        return None
+
+    if string[16:20] != "EPOC":
+        # Wrong cookie, not an E32Image header.
+        return None
 
     # Get UIDs as integers.
     uid1, uid2, uid3 = struct.unpack("<LLL", string[:12])
 
-    if uid1 not in (0x1000007AL, 0x10000079L) or string[16:20] != "EPOC":
-        # Wrong UIDs or cookie.
-        return False
-
+    # Verify UID checksum.
     uidstr = uidstostring(uid1, uid2, uid3)
     if uidstr != string[:16]:
-        # Wrong UID checksum.
-        return False
+        # Invalid UID checksum.
+        return None
 
-    return True
+    # Check type of E32Image header.
+    if uid1 == 0x10000079L:
+        return "DLL"
+    elif uid1 == 0x1000007AL:
+        return "EXE"
+
+    # Not an EXE or DLL.
+    return None
 
 def e32imageinfo(image):
     '''Return a tuple with the UID1, UID2, UID3, secure ID, vendor ID and
     capabilities (as a string) of the given e32image.'''
 
-    if not ise32image(image):
+    if ise32image(image) == None:
         raise ValueError("not a valid e32image header")
 
     uid1, uid2, uid3 = struct.unpack("<LLL", image[:12])
@@ -88,6 +97,31 @@ def parseintmagnitude(string):
         magnitude = 1
 
     return int(string, 10) * magnitude
+
+def uidfromname(basename):
+    '''Generate a test-range UID (0xe0000000 to 0xefffffff) from a
+    Unicode name.'''
+
+    # Normalise case.
+    basename = basename.lower()
+
+    # Convert Unicode name to an unambiguous byte string.
+    basename = basename.encode("utf8")
+
+    # Calculate a 32-bit CCITT CRC and set top four bits to "e".
+    return (crc32ccitt(basename) & 0x0fffffffL) | 0xe0000000L
+
+def e32imagecaps(string):
+    '''Check if a given string is an E32Image file and return its
+    capabilities or None if not an E32Image.
+
+    Returned value can be directly used as the "capabilities"
+    attribute of sisfile.SimpleSISWriter().addfile() call.'''
+
+    if ise32image(string) == None:
+        return None
+
+    return struct.unpack("<Q", string[136:144])[0]
 
 
 ##############################################################################
@@ -146,7 +180,7 @@ def e32imagecrc(image, uid3 = None, secureid = None, vendorid = None,
     and header checksum (CCITT CRC-32) recalculated. Optionally modify
     the UID3, secure ID, vendor ID, heap size and capability bit mask.'''
 
-    if not ise32image(image):
+    if ise32image(image) == None:
         raise ValueError("not a valid e32image header")
 
     # Get original UIDs as integers.
