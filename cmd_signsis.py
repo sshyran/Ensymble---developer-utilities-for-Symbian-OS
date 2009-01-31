@@ -3,7 +3,7 @@
 
 ##############################################################################
 # cmd_signsis.py - Ensymble command line tool, signsis command
-# Copyright 2006, 2007, 2008 Jussi Ylänen
+# Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -42,7 +42,7 @@ import cryptutil
 
 shorthelp = 'Sign a SIS package'
 longhelp  = '''signsis
-    [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
+    [--unsign] [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
     [--execaps=Cap1+Cap2+...] [--dllcaps=Cap1+Cap2+...]
     [--encoding=terminal,filesystem] [--verbose]
     <infile> [outfile]
@@ -54,6 +54,7 @@ all EXE and DLL files contained in the SIS package.
 Options:
     infile      - Path of the original SIS file
     outfile     - Path of the signed SIS file (or the original is overwritten)
+    unsign      - Remove all signatures from SIS file instead of signing
     cert        - Certificate to use for signing (PEM format)
     privkey     - Private key of the certificate (PEM format)
     passphrase  - Pass phrase of the private key (insecure, use stdin instead)
@@ -121,9 +122,9 @@ def run(pgmname, argv):
         gopt = getopt.getopt
 
     # Parse command line arguments.
-    short_opts = "a:k:p:b:d:e:vh"
+    short_opts = "ua:k:p:b:d:e:vh"
     long_opts = [
-        "cert=", "privkey=", "passphrase=", "execaps=",
+        "unsign", "cert=", "privkey=", "passphrase=", "execaps=",
         "dllcaps=", "encoding=", "verbose", "debug", "help"
     ]
     args = gopt(argv, short_opts, long_opts)
@@ -157,10 +158,18 @@ def run(pgmname, argv):
     else:
         raise ValueError("wrong number of arguments")
 
+    # Get unsign option.
+    unsign = False
+    if "--unsign" in opts.keys() or "-u" in opts.keys():
+        unsign = True
+
     # Get certificate and its private key file names.
     cert = opts.get("--cert", opts.get("-a", None))
     privkey = opts.get("--privkey", opts.get("-k", None))
-    if cert != None and privkey != None:
+    if unsign:
+        if cert != None or privkey != None:
+            raise ValueError("certificate or private key given when unsigning")
+    elif cert != None and privkey != None:
         # Convert file names from terminal encoding to filesystem encoding.
         cert = cert.decode(terminalenc).encode(filesystemenc)
         privkey = privkey.decode(terminalenc).encode(filesystemenc)
@@ -256,10 +265,15 @@ def run(pgmname, argv):
             infile.decode(filesystemenc).encode(terminalenc))
         print "Output SIS file   %s"        % (
             outfile.decode(filesystemenc).encode(terminalenc))
-        print "Certificate       %s"        % ((cert and
-            cert.decode(filesystemenc).encode(terminalenc)) or "<default>")
-        print "Private key       %s"        % ((privkey and
-            privkey.decode(filesystemenc).encode(terminalenc)) or "<default>")
+        if unsign:
+            print "Remove signatures Yes"
+        else:
+            print "Certificate       %s"        % ((cert and
+                cert.decode(filesystemenc).encode(terminalenc)) or
+                            "<default>")
+            print "Private key       %s"        % ((privkey and
+                privkey.decode(filesystemenc).encode(terminalenc)) or
+                               "<default>")
         if execaps != None:
             print "EXE capabilities  0x%x (%s)" % (execapmask, execaps)
         else:
@@ -310,34 +324,41 @@ def run(pgmname, argv):
     didxfield = ctrlfield.DataIndex
     ctrlfield.DataIndex = None
 
-    # Remove old signatures.
-    if len(ctrlfield.getsignatures()) > 0:
-        print ("%s: warning: removing old signatures "
-               "from input SIS file" % pgmname)
+    if not unsign:
+        # Remove old signatures.
+        if len(ctrlfield.getsignatures()) > 0:
+            print ("%s: warning: removing old signatures "
+                   "from input SIS file" % pgmname)
+            ctrlfield.setsignatures([])
+
+        # Calculate a signature of the modified SISController.
+        string = ctrlfield.tostring()
+        string = sisfield.stripheaderandpadding(string)
+        signature, algoid = sisfile.signstring(privkeydata, passphrase, string)
+
+        # Create a SISCertificateChain SISField from certificate data.
+        sf1 = sisfield.SISBlob(Data = cryptutil.certtobinary(certdata))
+        sf2 = sisfield.SISCertificateChain(CertificateData = sf1)
+
+        # Create a SISSignature SISField from calculated signature.
+        sf3 = sisfield.SISString(String = algoid)
+        sf4 = sisfield.SISSignatureAlgorithm(AlgorithmIdentifier = sf3)
+        sf5 = sisfield.SISBlob(Data = signature)
+        sf6 = sisfield.SISSignature(SignatureAlgorithm = sf4,
+                                    SignatureData = sf5)
+
+        # Create a new SISSignatureCertificateChain SISField.
+        sa  = sisfield.SISArray(SISFields = [sf6])
+        sf7 = sisfield.SISSignatureCertificateChain(Signatures = sa,
+                                                    CertificateChain = sf2)
+
+        # Set new certificate.
+        ctrlfield.Signature0 = sf7
+    else:
+        # Unsign, remove old signatures.
         ctrlfield.setsignatures([])
 
-    # Calculate a signature of the modified SISController.
-    string = ctrlfield.tostring()
-    string = sisfield.stripheaderandpadding(string)
-    signature, algoid = sisfile.signstring(privkeydata, passphrase, string)
-
-    # Create a SISCertificateChain SISField from certificate data.
-    sf1 = sisfield.SISBlob(Data = cryptutil.certtobinary(certdata))
-    sf2 = sisfield.SISCertificateChain(CertificateData = sf1)
-
-    # Create a SISSignature SISField from calculated signature.
-    sf3 = sisfield.SISString(String = algoid)
-    sf4 = sisfield.SISSignatureAlgorithm(AlgorithmIdentifier = sf3)
-    sf5 = sisfield.SISBlob(Data = signature)
-    sf6 = sisfield.SISSignature(SignatureAlgorithm = sf4, SignatureData = sf5)
-
-    # Create a new SISSignatureCertificateChain SISField.
-    sa  = sisfield.SISArray(SISFields = [sf6])
-    sf7 = sisfield.SISSignatureCertificateChain(Signatures = sa,
-                                                CertificateChain = sf2)
-
-    # Set certificate, restore data index.
-    ctrlfield.Signature0 = sf7
+    # Restore data index.
     ctrlfield.DataIndex = didxfield
 
     # Convert SISFields to string.
