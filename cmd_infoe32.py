@@ -2,8 +2,8 @@
 # -*- coding: utf-8 -*-
 
 ##############################################################################
-# cmd_signsis.py - Ensymble command line tool, infoe32 command
-# Copyright 2006, 2007 Jussi Ylänen
+# cmd_infoe32.py - Ensymble command line tool, infoe32 command
+# Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
 # This file is part of Ensymble developer utilities for Symbian OS(TM).
 #
@@ -115,8 +115,6 @@ def run(pgmname, argv):
 
     # Determine e32image file name(s).
     files = [name.decode(terminalenc).encode(filesystemenc) for name in pargs]
-    if len(files) < 1:
-        raise ValueError("wrong number of arguments")
 
     # Determine verbosity.
     verbose = False
