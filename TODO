@@ -1,4 +1,4 @@
-py2sis, simplesis: maybe remove warning about UID protected range?
+any2sis: new command to make a SIS out of any file type (needs new C++ stub)
 
 Try not to copy/paste so much.
 

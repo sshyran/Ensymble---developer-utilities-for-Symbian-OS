@@ -1,7 +1,7 @@
              The Ensymble developer utilities for Symbian OS
-                 Copyright 2006, 2007, 2008 Jussi Ylänen
+              Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 
-                         Last updated 2008-10-17
+                         Last updated 2009-01-30
 
 
 ABOUT
@@ -49,7 +49,7 @@ Ensymble is written in Python. Python v2.2 or newer is required, as
 older versions lack necessary language features. Ensymble has been
 tested on the following systems:
 
- * Debian GNU/Linux Sid (i386) with Python v2.3.5 and v2.4.4
+ * Debian GNU/Linux Sid (i386) with Python v2.3.5, v2.4.5 and v2.5.2
  * Red Hat Linux release 9 (i386) with Python v2.2.2
  * Red Hat Enterprise Linux AS release 3 (i386) with Python v2.2.3
  * Red Hat Enterprise Linux AS release 4 (i386) with Python v2.3.4
@@ -139,6 +139,7 @@ list all the available commands.
 The following commands are currently supported by Ensymble:
 
     altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+    genuid     Generate a new test-range UID from a name
     infoe32    Show the IDs and capabilities of e32image files (EXEs, DLLs)
     mergesis   Merge several SIS packages into one
     py2sis     Create a SIS package for a "Python for S60" application
@@ -189,6 +190,7 @@ EXAMPLES
 
     Commands:
         altere32   Alter the IDs and capabilities of e32image files (EXEs, DLLs)
+        genuid     Generate a new test-range UID from a name
         infoe32    Show the IDs and capabilities of e32image files (EXEs, DLLs)
         mergesis   Merge several SIS packages into one
         py2sis     Create a SIS package for a "Python for S60" application
@@ -338,6 +340,47 @@ possible, because applications usually include the UID in program code
 as well.
 
 
+The "genuid" command
+--------------------
+
+SYNOPSIS
+
+    $ ensymble.py genuid
+    [--encoding=terminal,filesystem] [--verbose]
+    <name>...
+
+
+DESCRIPTION
+
+The "genuid" command generates a test-range UID from an application or
+extension module name. It is suggested that Ensymble-generated UIDs are
+used instead of choosing an arbitrary test-range UID, to prevent clashes
+with software from other authors.
+
+
+PARAMETERS
+
+    name
+
+One or more names for which UIDs are generated. Names are
+case-insensitive and fully support the international Unicode characters.
+
+Generated UIDs are compatible with the automatic UID generation of
+py2sis and simplesis commands. The name must not contain version
+information or any file prefixes, just the name itself, e.g.
+"myextension" instead of "myextension_v1.2.3.sis".
+
+
+EXAMPLES
+
+    $ ensymble.py genuid myapplication myextension
+    myapplication: 0xe0942bea
+    myextension: 0xe325ed58
+
+This will generate two UIDs: one for "myapplication" and another for
+"myextension".
+
+
 The "infoe32" command
 ---------------------
 
@@ -350,10 +393,10 @@ SYNOPSIS
 
 DESCRIPTION
 
-The "infoe32" displays information about Symbian e32image files (Symbian
-EXEs and DLLs). All three UIDs as well as the vendor ID and secure ID
-are printed. Capabilities are displayed textually and as a hexadecimal
-number.
+The "infoe32" command displays information about Symbian e32image files
+(Symbian EXEs and DLLs). All three UIDs as well as the vendor ID and
+secure ID are printed. Capabilities are displayed textually and as a
+hexadecimal number.
 
 
 PARAMETERS
@@ -534,7 +577,8 @@ generated from application name if not given explicitly.
 Symbian UID for the application. If the UID option is not given, the
 main Python file ("default.py", see parameter "src" above) will be
 scanned for a special string. If no UID can be found, a temporary UID is
-generated from the application name (see option "--appname" above).
+generated from the application name (see option "--appname" and command
+"genuid" above).
 
 The special UID string can appear anywhere in the main Python file,
 including comments and as part of string literals. It is of the form
@@ -546,9 +590,9 @@ same format as with the command line parameter (see option "--uid"
 above).
 
 Note: Use a real UID for all applications to be distributed. The
-auto-generated test UID is only meant for development and testing, not
-for real applications. UIDs can be ordered from Symbian Signed [12]. If
-you have already ordered UIDs for 1st or 2nd Edition phones, to use
+auto-generated test-range UID is only meant for development and testing,
+not for real applications. UIDs can be ordered from Symbian Signed [12].
+If you have already ordered UIDs for 1st or 2nd Edition phones, to use
 these UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
 changed to an "f".
 
@@ -764,10 +808,10 @@ physical command line.
 
 This generates a SIS file called "myprog_v1_0_0.sis" in current working
 directory. This SIS file is ready to be uploaded to a S60 3rd Edition
-phone. Package version defaults to 1.0.0, a test UID is auto-generated
-for the package and a default self-signed certificate is used to
-digitally sign the SIS file. A default icon (the Python logo) is used
-for application icon.
+phone. Package version defaults to 1.0.0, a test-range UID is
+auto-generated for the package and a default self-signed certificate is
+used to digitally sign the SIS file. A default icon (the Python logo) is
+used for application icon.
 
     $ echo "12345" | ensymble.py py2sis
         --cert mycert.cer --privkey mykey.key
@@ -784,6 +828,7 @@ The "signsis" command
 SYNOPSIS
 
     $ ensymble.py signsis
+        [--unsign]
         [--cert=mycert.cer] [--privkey=mykey.key] [--passphrase=12345]
         [--execaps=Cap1+Cap2+...] [--dllcaps=Cap1+Cap2+...]
         [--encoding=terminal,filesystem] [--verbose]
@@ -818,6 +863,14 @@ Path of the modified SIS file. If a directory name is given, input file
 name is used as the output file name.
 
 Note: If no output file name is given, original SIS file is overwritten!
+
+    --unsign
+    -u
+
+Instead of signing a SIS file, remove all signatures from it. This is
+useful when submitting the SIS file to an external signing authority,
+otherwise the Ensymble default certificate may remain in the resulting
+signed SIS file.
 
     --cert=mycert.cer
     -a mycert.cer
@@ -938,13 +991,14 @@ is given.
     -u 0x01234567
 
 Symbian UID for the package. If the UID option is not given, the source
-directory name will be used to generate a temporary UID.
+directory name will be used to generate a temporary UID (see command
+"genuid" above).
 
 Note: Use a real UID for all packages to be distributed. The
-auto-generated test UID is only meant for development and testing, not
-for real packages. UIDs can be ordered from Symbian Signed [12]. If you
-have already ordered UIDs for 1st or 2nd Edition phones, to use these
-UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
+auto-generated test-range UID is only meant for development and testing,
+not for real packages. UIDs can be ordered from Symbian Signed [12]. If
+you have already ordered UIDs for 1st or 2nd Edition phones, to use
+these UIDs in 3rd Edition phones the first hex digit (a "1") needs to be
 changed to an "f".
 
 Also note: When changing the source directory name, the temporary UID
@@ -1069,9 +1123,9 @@ This generates a SIS file called "mymodule_v1_0_0.sis" in current
 working directory. Contents of the SIS file are directly taken from
 directory "mymodule" and the relative path of each file is preserved.
 The SIS file is ready to be uploaded to a S60 3rd Edition phone. Package
-version defaults to 1.0.0, a test UID is auto-generated for the package
-and a default self-signed certificate is used to digitally sign the SIS
-file.
+version defaults to 1.0.0, a test-range UID is auto-generated for the
+package and a default self-signed certificate is used to digitally sign
+the SIS file.
 
     $ echo "12345" | ensymble.py py2sis
         --cert mycert.cer --privkey mykey.key
@@ -1103,13 +1157,22 @@ No parameters
 EXAMPLES
 
     $ ensymble.py version
-    Ensymble v0.27 2008-06-30
+    Ensymble v0.28 2009-01-30
 
 The version string is printed.
 
 
 PROJECT HISTORY
 ===============
+
+2009-01-30
+Released Ensymble version v0.28 2009-01-30.
+Added genuid command for generating test-range UIDs.
+Added --unsign option to the signsis command.
+Corrected a bug where DLLs (PYDs) would fail with the py2sis --extrasdir option.
+Corrected an encoding bug in simplesis automatic UID generation.
+Corrected a possible Unicode exception in py2sis automatic UID generation.
+Added a warning about manually specifying a different test-range UID.
 
 2008-10-17
 Converted everything from ISO-8859-1 to UTF-8 encoding.
