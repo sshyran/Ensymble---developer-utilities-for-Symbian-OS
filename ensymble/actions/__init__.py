@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+
 ##############################################################################
 # Copyright 2006, 2007, 2008, 2009 Jussi Ylänen
 #
@@ -23,10 +24,25 @@
 actions - Commands used by the ensymble tool
 """
 __all__ = ["altere32", "genuid", "infoe32", "mergesis", "py2sis", "signsis",
-           "simplesis", "version" ]
+           "simplesis"]
 
 cmddict = {}
 for _ in __all__:
     cmddict[_] = __import__(_, globals(), locals(), [])
 
+from .. import __version__
+
+class Version:
+    shorthelp = "Print Ensymble version"
+    longhelp  = """version
+
+Print Ensymble version"""
+
+    def run(self, pgmname, argv):
+        print __version__
+
+cmddict['version'] = Version()
+
+
 __all__.append('cmddict')
+
