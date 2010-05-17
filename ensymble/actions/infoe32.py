@@ -28,7 +28,7 @@ import getopt
 import locale
 import struct
 
-import symbianutil
+from utils import symbianutil
 
 
 ##############################################################################

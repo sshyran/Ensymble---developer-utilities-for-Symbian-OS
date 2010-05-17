@@ -27,6 +27,7 @@ import os
 import errno
 import tempfile
 import random
+import subprocess
 
 
 opensslcommand = None   # Path to OpenSSL command line tool
@@ -357,21 +358,20 @@ def runopenssl(command, datain = ""):
         # Find path to the OpenSSL command.
         findopenssl()
 
-    # Construct a command line for os.popen3().
-    cmdline = '%s %s' % (opensslcommand, command)
+    # Construct a command line for subprocess.Popen()
+    cmdline = (opensslcommand, command)
 
     if openssldebug:
         # Print command line.
-        print "DEBUG: os.popen3(%s)" % repr(cmdline)
+        print "DEBUG: Popen(%s)" % repr(cmdline)
 
-    # Run command. Use os.popen3() to capture stdout and stderr.
-    pipein, pipeout, pipeerr = os.popen3(cmdline)
+    # Run command.
+    p = subprocess.Popen(cmdline, stdin=subprocess.PIPE,
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, close_fds=True)
+    (pipein, pipeout, pipeerr) = (p.stdin, p.stdout, p.stderr)
     pipein.write(datain)
-    pipein.close()
     dataout = pipeout.read()
-    pipeout.close()
     errout = pipeerr.read()
-    pipeerr.close()
 
     if openssldebug:
         # Print standard error output.
@@ -396,11 +396,12 @@ def findopenssl():
         cmd = os.path.join(path, "openssl")
         try:
             # Try to query OpenSSL version.
-            pin, pout = os.popen4('"%s" version' % cmd)
-            pin.close()
+            p = subprocess.Popen((cmd, 'version'),
+                    stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                    stderr=subprocess.STDOUT, close_fds=True)
+            pin, pout = p.stdin, p.stdout
             verstr = pout.read()
-            pout.close()
-        except OSError:
+        except OSError, e:
             # Could not run command, skip to the next path candidate.
             continue
 

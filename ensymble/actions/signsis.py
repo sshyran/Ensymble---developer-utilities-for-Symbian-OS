@@ -28,12 +28,12 @@ import getopt
 import getpass
 import locale
 import struct
-import sha
+from hashlib import sha1
 
-import sisfile
-import sisfield
-import symbianutil
-import cryptutil
+from utils import sisfile
+from utils import sisfield
+from utils import symbianutil
+from utils import cryptutil
 
 
 ##############################################################################
@@ -193,7 +193,7 @@ def run(pgmname, argv):
         # No certificate given, use the Ensymble default certificate.
         # defaultcert.py is not imported when not needed. This speeds
         # up program start-up a little.
-        import defaultcert
+        from utils import defaultcert
         certdata = defaultcert.cert
         privkeydata = defaultcert.privkey
 
@@ -429,7 +429,7 @@ def modifycaps(siscontents, sisfiledescmap, execapmask, dllcapmask):
                 sisfiledesc.Capabilities = None
 
             # Re-calculate file hash in the SISFileDescription SISField.
-            sha1hash = sha.new(contents).digest()
+            sha1hash = sha1(contents).digest()
             hashblob = sisfield.SISBlob(Data = sha1hash)
             hashfield = sisfield.SISHash(HashAlgorithm =
                                          sisfield.ESISHashAlgSHA1,

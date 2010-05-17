@@ -28,9 +28,9 @@ import getopt
 import getpass
 import locale
 
-import sisfile
-import sisfield
-import cryptutil
+from utils import sisfile
+from utils import sisfield
+from utils import cryptutil
 
 
 ##############################################################################
@@ -167,7 +167,7 @@ def run(pgmname, argv):
         # No certificate given, use the Ensymble default certificate.
         # defaultcert.py is not imported when not needed. This speeds
         # up program start-up a little.
-        import defaultcert
+        from utils import defaultcert
         certdata = defaultcert.cert
         privkeydata = defaultcert.privkey
 

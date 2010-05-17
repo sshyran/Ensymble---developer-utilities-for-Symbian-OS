@@ -30,11 +30,11 @@ import getpass
 import locale
 import zlib
 
-import sisfile
-import sisfield
-import symbianutil
-import rscfile
-import miffile
+from utils import sisfile
+from utils import sisfield
+from utils import symbianutil
+from utils import rscfile
+from utils import miffile
 
 
 ##############################################################################
@@ -383,7 +383,7 @@ def run(pgmname, argv):
         # No certificate given, use the Ensymble default certificate.
         # defaultcert.py is not imported when not needed. This speeds
         # up program start-up a little.
-        import defaultcert
+        from utils import defaultcert
         certdata = defaultcert.cert
         privkeydata = defaultcert.privkey
 

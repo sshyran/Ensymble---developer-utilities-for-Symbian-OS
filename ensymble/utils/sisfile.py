@@ -25,7 +25,7 @@
 import os
 import time
 import struct
-import sha
+from hashlib import sha1
 
 import symbianutil
 import cryptutil
@@ -170,7 +170,7 @@ def makefiledesc(contents, compressedlen, index, target = None,
     # Calculate file hash using SHA-1. Create a SISHash SISField out of it.
     # Contents may be None, to properly support the EOpNull install operation.
     if contents != None:
-        sha1hash = sha.new(contents).digest()
+        sha1hash = sha1(contents).digest()
     else:
         # No data, the containing SISBlob is mandatory but empty.
         sha1hash = ""

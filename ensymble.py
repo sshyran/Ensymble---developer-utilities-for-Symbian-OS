@@ -25,14 +25,12 @@
 import sys
 import os
 
-# Import command modules.
-cmddict     = {"altere32":  None, "genuid":     None,
-               "infoe32":   None, "mergesis":   None,
-               "py2sis":    None, "signsis":    None,
-               "simplesis": None, "version":    None}
-for cmdname in cmddict.keys():
-    cmddict[cmdname] = __import__("cmd_%s" % cmdname, globals(), locals(), [])
+# needed for modules under ensymble.action to correctly find ensymble.utils.*
+import ensymble
+sys.path.append(os.path.dirname(ensymble.__file__))
 
+# Import command modules from actions
+from ensymble.actions import *
 
 def main():
     pgmname = os.path.basename(sys.argv[0])
@@ -91,8 +89,8 @@ usage: %(pgmname)s %(longhelp)s''' % locals())
     return 0
 
 # Call main if run as stand-alone executable.
-#if __name__ == '__main__':
-#    sys.exit(main())
+if __name__ == '__main__':
+    sys.exit(main())
 
 # Call main regardless, to support packing with the squeeze utility.
-sys.exit(main())
+# sys.exit(main())
